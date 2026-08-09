@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>Oper8 CRM — Интерактивная карта автоматизации</title>
+<style>
+  :root {
+    --bg: #020617;
+    --bg2: #0f172a;
+    --line: #1e293b;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --t1: #22d3ee;   /* Задача 1 */
+    --t2: #34d399;   /* Задача 2 */
+    --t3: #fb7185;   /* Задача 3 */
+    --human: #fbbf24;
+    --crm: #a78bfa;
+    --ext: #94a3b8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    background-image:
+      linear-gradient(rgba(30,41,59,0.3) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30,41,59,0.3) 1px, transparent 1px);
+    background-size: 40px 40px;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+
+  /* ===== Header ===== */
+  header { margin-bottom: 28px; }
+  .kicker { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  h1 { font-size: 26px; font-weight: 800; letter-spacing: 0.5px; line-height: 1.2; }
+  .sub { margin-top: 8px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  /* ===== Home: three paths ===== */
+  .paths { display: grid; gap: 14px; }
+  .path-card {
+    background: var(--bg2);
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    padding: 20px;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .path-card:hover { transform: translateY(-2px); border-color: var(--pc); box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+  .path-card .bar { position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+  .path-card h2 { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .path-card .num {
+    display: inline-flex; width: 30px; height: 30px; border-radius: 50%;
+    align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0;
+  }
+  .path-card p { font-size: 13px; color: var(--muted); line-height: 1.55; margin-bottom: 12px; }
+  .path-card .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta .pill { font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid; }
+  .path-card .go { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); font-size: 22px; color: var(--pc); opacity: 0.6; }
+  .path-card:hover .go { opacity: 1; }
+
+  /* ===== Path view ===== */
+  .view { display: none; }
+  .view.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .back {
+    background: none; border: 1.5px solid var(--line); color: var(--text);
+    border-radius: 10px; padding: 8px 14px; font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; gap: 6px; transition: border-color 0.15s;
+    font-family: inherit;
+  }
+  .back:hover { border-color: var(--muted); }
+  .topbar h2 { font-size: 18px; font-weight: 800; flex: 1; }
+  .topbar .badge { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; border: 1px solid; }
+
+  /* progress */
+  .progress-wrap { background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; }
+  .progress-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+  .progress-track { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+
+  /* steps */
+  .step {
+    background: var(--bg2);
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .step:hover { border-color: var(--pc); }
+  .step.done { opacity: 0.92; }
+  .step.active-step { border-color: var(--pc); box-shadow: 0 0 0 1px var(--pc), 0 8px 30px rgba(0,0,0,0.35); }
+  .step .s-head { display: flex; align-items: center; gap: 12px; }
+  .step .s-num {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; border: 1.5px solid var(--line); color: var(--muted);
+    background: #0b1220; transition: all 0.2s;
+  }
+  .step.done .s-num { border-color: var(--pc); color: var(--pc); }
+  .step.active-step .s-num { background: var(--pc); border-color: var(--pc); color: #020617; }
+  .step .s-title { font-size: 15px; font-weight: 700; flex: 1; }
+  .step .s-who { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; border: 1px solid; white-space: nowrap; }
+  .step .s-toggle { font-size: 12px; color: var(--muted); transition: transform 0.2s; }
+  .step.open .s-toggle { transform: rotate(180deg); }
+  .step .s-body { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
+  .step.open .s-body { display: block; animation: fadeIn 0.2s ease; }
+  .s-body p { font-size: 13px; color: var(--muted); line-height: 1.65; margin-bottom: 10px; }
+  .s-body p b { color: var(--text); font-weight: 600; }
+  .s-body ul { list-style: none; }
+  .s-body li { font-size: 12.5px; color: var(--muted); line-height: 1.6; padding-left: 20px; position: relative; margin-bottom: 4px; }
+  .s-body li::before { content: '→'; position: absolute; left: 0; color: var(--pc); }
+  .s-body li b { color: var(--text); font-weight: 600; }
+  .s-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .s-tags span { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line); color: var(--muted); background: rgba(2,6,23,0.5); }
+  .note { background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.35); border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #fde68a; line-height: 1.55; margin-bottom: 14px; }
+  .note b { font-weight: 700; }
+
+  /* connector */
+  .connector { width: 2px; height: 18px; background: var(--line); margin-left: 33px; }
+
+  /* footer */
+  .footer-actions { display: flex; gap: 10px; margin-top: 24px; }
+  .btn {
+    background: none; border: 1.5px solid var(--line); color: var(--text);
+    border-radius: 10px; padding: 10px 16px; font-size: 13px; cursor: pointer;
+    font-family: inherit; transition: border-color 0.15s, background 0.15s;
+  }
+  .btn:hover { border-color: var(--pc); }
+  .btn.primary { background: var(--pc); border-color: var(--pc); color: #020617; font-weight: 700; }
+  .btn.primary:hover { filter: brightness(1.1); }
+  .btn.dim { color: var(--muted); }
+  .btn.dim:hover { border-color: var(--line); color: var(--text); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; font-size: 11px; color: var(--muted); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .legend .dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  @media (max-width: 560px) {
+    h1 { font-size: 21px; }
+    .path-card .go { display: none; }
+    .step .s-who { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ HOME ============ -->
+  <div id="home" class="view active">
+    <header>
+      <div class="kicker">Oper8 CRM · Лаборатория Ирика</div>
+      <h1>Карта автоматизации</h1>
+      <div class="sub">Три пути — три задачи. Выбери путь, чтобы увидеть цепочку событий. Каждый шаг можно раскрыть для деталей.</div>
+    </header>
+
+    <div class="paths">
+      <!-- Path 1 -->
+      <div class="path-card" data-path="1" style="--pc:var(--t1)">
+        <div class="bar" style="background:var(--t1)"></div>
+        <h2><span class="num" style="background:rgba(34,211,238,0.15); color:var(--t1)">1</span> Почта → сделка в CRM</h2>
+        <p>Письмо превращается в заполненную карточку сделки автоматически. Квалификаторы перестают работать с почтой и сразу звонят по готовым заявкам.</p>
+        <div class="meta">
+          <span class="pill" style="border-color:var(--t1); color:#a5f3fc">🤖 Робот + CRM</span>
+          <span class="pill" style="border-color:var(--line)">≥30% времени квалификаторов</span>
+        </div>
+        <span class="go">→</span>
+      </div>
+
+      <!-- Path 2 -->
+      <div class="path-card" data-path="2" style="--pc:var(--t2)">
+        <div class="bar" style="background:var(--t2)"></div>
+        <h2><span class="num" style="background:rgba(52,211,153,0.15); color:var(--t2)">2</span> Стандартизация ТЗ</h2>
+        <p>Разношёрстное ТЗ от клиента превращается в единый стандартный бланк: объект, замеры, нормативы, методики. Расчётчику остаётся только посчитать.</p>
+        <div class="meta">
+          <span class="pill" style="border-color:var(--t2); color:#a7f3d0">🤖 Агент + человек</span>
+          <span class="pill" style="border-color:var(--line)">до 40% времени расчёта</span>
+        </div>
+        <span class="go">→</span>
+      </div>
+
+      <!-- Path 3 -->
+      <div class="path-card" data-path="3" style="--pc:var(--t3)">
+        <div class="bar" style="background:var(--t3)"></div>
+        <h2><span class="num" style="background:rgba(251,113,133,0.15); color:var(--t3)">3</span> Протоколы и проверка</h2>
+        <p>Ускорение Excel-генераторов протоколов и сервис автоматической проверки: всё заполнено, бьётся с ТЗ и договором. Внедряется последним.</p>
+        <div class="meta">
+          <span class="pill" style="border-color:var(--t3); color:#fecdd3">⚙️ Генераторы + сервис</span>
+          <span class="pill" style="border-color:var(--line)">120–200 т.р./мес</span>
+        </div>
+        <span class="go">→</span>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><span class="dot" style="background:var(--t1)"></span> Задача 1</span>
+      <span><span class="dot" style="background:var(--t2)"></span> Задача 2</span>
+      <span><span class="dot" style="background:var(--t3)"></span> Задача 3</span>
+      <span><span class="dot" style="background:var(--human)"></span> Человек в контуре</span>
+      <span><span class="dot" style="background:var(--crm)"></span> CRM / данные</span>
+    </div>
+  </div>
+
+  <!-- ============ PATH 1 ============ -->
+  <div id="path-1" class="view" style="--pc:var(--t1)">
+    <div class="topbar">
+      <button class="back" onclick="goHome()">← Все пути</button>
+      <h2>Почта → сделка в CRM</h2>
+      <span class="badge" style="border-color:var(--t1); color:#a5f3fc">Задача 1</span>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-meta"><span>Цепочка событий</span><span id="p1-count">0 / 6 шагов</span></div>
+      <div class="progress-track"><div class="progress-fill" id="p1-fill" style="background:var(--t1); width:0%"></div></div>
+    </div>
+
+    <div class="note"><b>Идея:</b> ни один сотрудник не трогает почту. Письмо → робот → готовая карточка → человек только проверяет и звонит.</div>
+
+    <div class="step" data-step="1" onclick="toggleStep(this)">
+      <div class="s-head">
+        <span class="s-num">1</span>
+        <span class="s-title">Письмо попадает в систему</span>
+        <span class="s-who" style="border-color:var(--ext); color:var(--ext)">Внешний мир</span>
+        <span class="s-toggle">▼</span>
+      </div>
+      <div class="s-body">
+        <p>Заявка приходит <b>на Яндекс.Почту</b> — это основной канал. Звонки сводятся к «пришлите на почту», заявки с сайта WordPress тоже падают в почту.</p>
+        <ul>
+          <li><b>Яндекс.Почта</b> — общий адрес, пересылки с личных ящиков менеджеров</li>
+          <li><b>Сайт WordPress</b> — заявки направляются на почту (в перспективе — напрямую в CRM)</li>
+          <li><b>Телефон</b> — клиенту говорят прислать письмо: без ТЗ ничего сделать нельзя</li>
+        </ul>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step" data-step="2" onclick="toggleStep(this)">
+      <div class="s-head">
+        <span class="s-num">2</span>
+        <span class="s-title">Робот разбирает письмо</span>
+        <span class="s-who" style="border-color:var(--t1); color:#a5f3fc">🤖 Робот</span>
+        <span class="s-toggle">▼</span>
+      </div>
+      <div class="s-body">
+        <p>Робот читает <b>текст письма и вложения</b> (Word, Excel, PDF) и решает: это заявка или нет?</p>
+        <ul>
+          <li><b>Читает:</b> текст письма + вложения — контактные и персональные данные лида, юр. данные компании</li>
+          <li><b>Решает:</b> заявка / не заявка (спам, доп. информация по другой сделке → запись «не заявка»)</li>
+          <li><b>Кладёт файлы</b> на Яндекс.Диск в папку сделки + ссылка в карточку</li>
+        </ul>
+        <div class="s-tags"><span>Решение команды: чтение вложений — уже в MVP</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step" data-step="3" onclick="toggleStep(this)">
+      <div class="s-head">
+        <span class="s-num">3</span>
+        <span class="s-title">Создаётся карточка сделки</span>
+        <span class="s-who" style="border-color:var(--crm); color:var(--crm)">CRM · AMO</span>
+        <span class="s-toggle">▼</span>
+      </div>
+      <div class="s-body">
+        <p>Робот заполняет карточку в AMO так, как это делал квалификатор руками — но за секунды.</p>
+        <ul>
+          <li><b>🧪 Объект исследования</b> — воздух / промвыбросы / вода / рабочие места</li>
+          <li><b>🏢 Компания + ИНН</b> — сверка со справочником, ссылка на карточку компании</li>
+          <li><b>🔁 Постоянный или новый клиент</b> — по истории сделок</li>
+          <li><b>📎 Вложения</b> → ссылка на Яндекс.Диск</li>
+          <li><b>📊 Примерный объём</b> → приоритет заявки</li>
+        </ul>
+        <div class="s-tags"><span>Квалификатор видит задачу и сразу работает из CRM</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step" data-step="4" onclick="toggleStep(this)">
+      <div class="s-head">
+        <span class="s-num">4</span>
+        <span class="s-title">Развилка: куда идёт заявка</span>
+        <span class="s-who" style="border-color:var(--human); color:var(--human)">Человек + робот</span>
+        <span class="s-toggle">▼</span>
+      </div>
+      <div class="s-body">
+        <p>По приоритету заявка идёт одним из трёх путей:</p>
+        <ul>
+          <li><b>🔥 Высокий приоритет</b> → <b>квалификатор звонит</b> по скрипту, попутно заполняет карточку компании</li>
+          <li><b>⚙️ Низкий приоритет</b> (шаг 1-3) → <b>робот сам пишет клиенту</b> уточняющие вопросы, ждёт ответ, дозаполняет поля</li>
+          <li><b>🚫 Нецелевая</b> → <b>отказное письмо</b> с перенаправлением: сначала проверка человеком, потом автоотправка</li>
+        </ul>
+        <div class="s-tags"><span>Нет ответа от клиента → заявка всё равно уходит квалификатору</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step" data-step="5" onclick="toggleStep(this)">
+      <div class="s-head">
+        <span class="s-num">5</span>
+        <span class="s-title">Квалификатор работает из CRM</span>
+        <span class="s-who" style="border-color:var(--human); color:var(--human)">Человек</span>
+        <span class="s-toggle">▼</span>
+      </div>
+      <div class="s-body">
+        <p>Сотрудники <b>не создают сделки и не разбирают почту</b> — в CRM уже готовая приоритизированная очередь.</p>
+        <ul>
+          <li><b>Приоритизация:</b> кому звонить сейчас — видно сразу</li>
+          <li><b>Звонок по скрипту</b> → заполнение карточки компании → распределение руководителем ОП → менеджер продаж</li>
+        </ul>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step" data-step="6" onclick="toggleStep(this)">
+      <div class="s-head">
+        <span class="s-num">6</span>
+        <span class="s-title">Дальше — Задача 2</span>
+        <span class="s-who" style="border-color:var(--t2); color:#a7f3d0">→ Переход</span>
+        <span class="s-toggle">▼</span>
+      </div>
+      <div class="s-body">
+        <p>Заполненная карточка и файлы ТЗ — это вход для стандартизации. Путь продолжается в <b>Задаче 2</b>.</p>
+        <ul>
+          <li>Менеджер продаж уточняет ТЗ (брифование) → комментарии для расчётчика</li>
+          <li>ТЗ попадает в стандартизацию — смотри путь «Стандартизация ТЗ»</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-actions">
+      <button class="btn primary" onclick="goPath(2)">Дальше: Задача 2 →</button>
+      <button class="btn dim" onclick="resetPath(1)">Сбросить прогресс</button>
+    </div>
+  </div>
+
+  <!-- ============ PATH 2 ============ -->
+  <div id="path-2" class="view" style="--pc:var(--t2)">
+    <div class="topbar">
+      <button class="back" onclick="goHome()">← Все пути</button>
+      <h2>Стандартизация ТЗ</h2>
+      <span class="badge" style="border-color:var(--t2); color:#a7f3d0">Задача 2</span>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-meta"><span>Цепочка событий</span><span id="p2-count">0 / 5 шагов</span></div>
+      <div class="progress-track"><div class="progress-fill" id="p2-fill" style="background:var(--t2); width:0%"></div></div>
+    </div>
+
+    <div class="note"><b>Суть:</b> клиент присылает ТЗ «кто во что горазд». Агент превращает его в единый стандартный бланк — расчётчику остаётся посчитать, а не разбираться.</div>
+
+    <div class="step" data-step="1" onclick="toggleStep(this)">
+      <div class="s-head">
+        <span class="s-num">1</span>
+        <span class="s-title">Вход: разношёрстное ТЗ</span>
+        <span class="s-who" style="border-color:var(--ext); color:var(--ext)">Внешний мир</span>
+        <span class="s-toggle">▼</span>
+      </div>
+      <div class="s-body">
+        <p>У каждого клиента своя структура и формулировки. ТЗ может быть письмом, Word, Excel, PDF — иногда скан наброска.</p>
+        <ul>
+          <li><b>Письмо + вложения</b> из Задачи 1</li>
+          <li><b>Заметки сотрудника</b> после звонка с клиентом (внесены в CRM)</li>
+          <li><b>Сканы</b> — на MVP вводятся человеком (OCR вне рамок)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step" data-step="2" onclick="toggleStep(this)">
+      <div class="s-head">
+        <span class="s-num">2</span>
+        <span class="s-title">Агент собирает первичное ТЗ</span>
+        <span class="s-who" style="border-color:var(--t2); color:#a7f3d0">🤖 Агент</span>
+        <span class="s-toggle">▼</span>
+      </div>
+      <div class="s-body">
+        <p>Агент из всей первичной информации формирует <b>первичное стандартизированное ТЗ</b> — единый бланк с предсказуемой структурой.</p>
+        <ul>
+          <li><b>🧪 Объект исследования</b></li>
+          <li><b>🔢 Количество замеров</b> — точки, пробы, источники</li>
+          <li><b>📏 Нормативы</b> — ГОСТы, СанПиНы, ссылки</li>
+          <li><b>🧫 Методики</b> — какими методами считать</li>
+          <li><b>💬 Комментарии</b> — особенности, сроки</li>
+        </ul>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step" data-step="3" onclick="toggleStep(this)">
+      <div class="s-head">
+        <span class="s-num">3</span>
+        <span class="s-title">Комментарий: чего не хватает</span>
+        <span class="s-who" style="border-color:var(--crm); color:var(--crm)">CRM</span>
+        <span class="s-toggle">▼</span>
+      </div>
+      <div class="s-body">
+        <p>В карточке ТЗ агент оставляет <b>комментарий со списком уточняющих вопросов</b> — какие данные нужно запросить у клиента.</p>
+        <ul>
+          <li>Не всё информация приходит с первого раза</li>
+          <li>Комментарий виден сотруднику — он знает, что добыть</li>
+        </ul>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step" data-step="4" onclick="toggleStep(this)">
+      <div class="s-head">
+        <span class="s-num">4</span>
+        <span class="s-title">Развилка: кто дозаполняет</span>
+        <span class="s-who" style="border-color:var(--human); color:var(--human)">Агент ИЛИ человек</span>
+        <span class="s-toggle">▼</span>
+      </div>
+      <div class="s-body">
+        <p><b>Открытый вопрос</b> — решается с командой и Ириком. Два пути:</p>
+        <ul>
+          <li><b>Путь А · агент:</b> робот сам пишет лиду список вопросов → ждёт ответ → <b>сам дозаполняет</b> поля карточки ТЗ</li>
+          <li><b>Путь Б · человек:</b> сотрудник задаёт вопросы (звонок/письмо, как привык) → вносит ответы в CRM → <b>агент собирает</b> финальное ТЗ</li>
+        </ul>
+        <div class="s-tags"><span>Возможен гибрид: простые случаи — агент, сложные — человек</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step" data-step="5" onclick="toggleStep(this)">
+      <div class="s-head">
+        <span class="s-num">5</span>
+        <span class="s-title">Финальное ТЗ → расчётчику</span>
+        <span class="s-who" style="border-color:var(--human); color:var(--human)">Человек</span>
+        <span class="s-toggle">▼</span>
+      </div>
+      <div class="s-body">
+        <p>Расчётчик проверяет готовый бланк и считает. Возможен <b>второй прогон</b> — когда заказчик довыдаёт данные для выполнения работ (тот же модуль, ещё раз).</p>
+        <ul>
+          <li><b>Расчёт КП</b> — автоподбор лабораторий и методик уже частично автоматизирован</li>
+          <li><b>Защита КП</b> с клиентом → договор (шаблоны) → оплата → передача в исполнение</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-actions">
+      <button class="btn primary" onclick="goPath(3)">Дальше: Задача 3 →</button>
+      <button class="btn" onclick="goPath(1)">← Задача 1</button>
+      <button class="btn dim" onclick="resetPath(2)">Сбросить прогресс</button>
+    </div>
+  </div>
+
+  <!-- ============ PATH 3 ============ -->
+  <div id="path-3" class="view" style="--pc:var(--t3)">
+    <div class="topbar">
+      <button class="back" onclick="goHome()">← Все пути</button>
+      <h2>Протоколы и проверка</h2>
+      <span class="badge" style="border-color:var(--t3); color:#fecdd3">Задача 3</span>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-meta"><span>Цепочка событий</span><span id="p3-count">0 / 5 шагов</span></div>
+      <div class="progress-track"><div class="progress-fill" id="p3-fill" style="background:var(--t3); width:0%"></div></div>
+    </div>
+
+    <div class="note"><b>Статус:</b> «это в конце» — внедряется после Задач 1–2. Сейчас на этом заняты 4–5 человек, ~120–200 тыс. руб./мес.</div>
+
+    <div class="step" data-step="1" onclick="toggleStep(this)">
+      <div class="s-head">
+        <span class="s-num">1</span>
+        <span class="s-title">Передача в исполнение</span>
+        <span class="s-who" style="border-color:var(--human); color:var(--human)">Человек</span>
+        <span class="s-toggle">▼</span>
+      </div>
+      <div class="s-body">
+        <p>После оплаты менеджер исполнения проверяет сделку — сейчас вручную.</p>
+        <ul>
+          <li><b>Расчёт ↔ договор</b> — бьются ли суммы и объёмы</li>
+          <li><b>Подтверждения от лабораторий</b> — всё ли на месте</li>
+          <li><i>Ирик: «в теории можно структурировать, по факту не требуется» — эту проверку не автоматизируем</i></li>
+        </ul>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step" data-step="2" onclick="toggleStep(this)">
+      <div class="s-head">
+        <span class="s-num">2</span>
+        <span class="s-title">Распределение по лабораториям</span>
+        <span class="s-who" style="border-color:var(--human); color:var(--human)">Человек</span>
+        <span class="s-toggle">▼</span>
+      </div>
+      <div class="s-body">
+        <p>Менеджер распределяет заявку между лабораториями — одни протоколы делает одна, другие — другая. ~85% работ формальные (протоколы без выездов), ~15% — реальные выезды.</p>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step" data-step="3" onclick="toggleStep(this)">
+      <div class="s-head">
+        <span class="s-num">3</span>
+        <span class="s-title">Excel-генераторы протоколов</span>
+        <span class="s-who" style="border-color:var(--t3); color:#fecdd3">⚙️ Генераторы</span>
+        <span class="s-toggle">▼</span>
+      </div>
+      <div class="s-body">
+        <p>Умные шаблоны в Excel: менеджер заполняет рабочий лист → генератор собирает печатную форму протокола.</p>
+        <ul>
+          <li><b>Подтягивается автоматически:</b> справочники, ТЗ «как оно есть»</li>
+          <li><b>Вбивается руками:</b> жёлтые поля — концентрации, проверки</li>
+          <li><b>Шаблоны</b> по типу объекта: промвыбросы (сложный), атмосферный воздух (проще), вода…</li>
+          <li><b>Структура:</b> 30×1 (30 источников × 1 замер), 3×2 (3 источника × 20 замеров) — выбирается целесообразный</li>
+          <li><b>Выход:</b> номер протокола → печатная форма → на печать</li>
+        </ul>
+        <div class="s-tags"><span>4–5 человек · 30–40 т.р. зарплата · 120–200 т.р./мес</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step" data-step="4" onclick="toggleStep(this)">
+      <div class="s-head">
+        <span class="s-num">4</span>
+        <span class="s-title">Ускорение генераторов</span>
+        <span class="s-who" style="border-color:var(--t3); color:#fecdd3">Цель А</span>
+        <span class="s-toggle">▼</span>
+      </div>
+      <div class="s-body">
+        <p>Направление 1: рабочий лист заполняется не руками, а подтягивается из стандартизированного ТЗ (связка с Задачей 2) и справочников.</p>
+        <ul>
+          <li>Стандартный бланк из Задачи 2 = меньше ручного ввода</li>
+          <li>Меньше людей на оформлении протоколов</li>
+        </ul>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="step" data-step="5" onclick="toggleStep(this)">
+      <div class="s-head">
+        <span class="s-num">5</span>
+        <span class="s-title">Сервис проверки протоколов</span>
+        <span class="s-who" style="border-color:var(--t3); color:#fecdd3">Цель Б</span>
+        <span class="s-toggle">▼</span>
+      </div>
+      <div class="s-body">
+        <p>Направление 2: автоматическая проверка готового протокола на <b>формальную корректность и согласованность</b>.</p>
+        <ul>
+          <li><b>Все поля заполнены</b> — нет пустых обязательных мест</li>
+          <li><b>Бьётся с ТЗ</b> — объект, источники, замеры, методики, нормативы те же</li>
+          <li><b>Бьётся с договором</b> — что обещали, то и оформили</li>
+          <li><b>Формат</b> — номера протоколов, единицы измерения, ссылки на методики</li>
+          <li><b>Логика чисел</b> — концентрации в разумных диапазонах</li>
+        </ul>
+        <div class="s-tags"><span>Проверяет форму и согласованность, НЕ качество анализов — это экспертиза лаборатории</span></div>
+      </div>
+    </div>
+
+    <div class="footer-actions">
+      <button class="btn" onclick="goPath(2)">← Задача 2</button>
+      <button class="btn dim" onclick="resetPath(3)">Сбросить прогресс</button>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><span class="dot" style="background:var(--t1)"></span> Задача 1</span>
+    <span><span class="dot" style="background:var(--t2)"></span> Задача 2</span>
+    <span><span class="dot" style="background:var(--t3)"></span> Задача 3</span>
+    <span><span class="dot" style="background:var(--human)"></span> Человек в контуре</span>
+    <span><span class="dot" style="background:var(--crm)"></span> CRM / данные</span>
+  </div>
+
+</div>
+
+<script>
+  const PATHS = { 1: 6, 2: 5, 3: 5 };
+  const storage = {
+    get(p) { try { return JSON.parse(localStorage.getItem('oper8-progress-' + p)) || []; } catch { return []; } },
+    set(p, v) { localStorage.setItem('oper8-progress-' + p, JSON.stringify(v)); }
+  };
+
+  function goHome() {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('home').classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function goPath(p) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('path-' + p).classList.add('active');
+    renderPath(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function renderPath(p) {
+    const pathEl = document.getElementById('path-' + p);
+    const done = storage.get(p);
+    const total = PATHS[p];
+    pathEl.querySelectorAll('.step').forEach((step, i) => {
+      const n = i + 1;
+      step.classList.toggle('done', done.includes(n));
+      step.classList.toggle('active-step', done.includes(n) && !done.includes(n + 1));
+    });
+    document.getElementById('p' + p + '-count').textContent = done.length + ' / ' + total + ' шагов';
+    document.getElementById('p' + p + '-fill').style.width = (done.length / total * 100) + '%';
+  }
+
+  function toggleStep(el) {
+    el.classList.toggle('open');
+  }
+
+  function resetPath(p) {
+    storage.set(p, []);
+    renderPath(p);
+    document.querySelectorAll('#path-' + p + ' .step').forEach(s => s.classList.remove('open'));
+  }
+
+  // Click on step = mark done when clicked? No — explicit toggle:
+  // First click opens. A separate small "done" affordance: clicking the number toggles done.
+  document.addEventListener('click', function (e) {
+    const numEl = e.target.closest('.s-num');
+    if (!numEl) return;
+    const step = numEl.closest('.step');
+    const pathEl = step.closest('.view');
+    const p = parseInt(pathEl.id.replace('path-', ''));
+    const n = parseInt(step.dataset.step);
+    let done = storage.get(p);
+    if (done.includes(n)) { done = done.filter(x => x !== n); } else { done.push(n); }
+    done.sort((a, b) => a - b);
+    storage.set(p, done);
+    renderPath(p);
+  });
+
+  // Home cards
+  document.querySelectorAll('.path-card').forEach(card => {
+    card.addEventListener('click', () => goPath(parseInt(card.dataset.path)));
+  });
+</script>
+</body>
+</html>
