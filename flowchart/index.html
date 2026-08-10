@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>Oper8 CRM — Блок-схема автоматизации</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #ffffff;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #1f2937;
+  }
+  .page { max-width: 1720px; margin: 0 auto; padding: 20px 16px 40px; }
+
+  /* Header */
+  header { margin-bottom: 16px; }
+  .kicker { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #6b7280; margin-bottom: 6px; }
+  h1 { font-size: 24px; font-weight: 800; }
+  .sub { margin-top: 6px; font-size: 13px; color: #6b7280; }
+  .toplinks { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .toplinks a {
+    font-size: 12px; text-decoration: none; color: #1d4ed8; border: 1px solid #bfdbfe;
+    padding: 6px 12px; border-radius: 8px; background: #eff6ff;
+  }
+  .toplinks a:hover { background: #dbeafe; }
+
+  /* Legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 14px 0 18px; font-size: 11.5px; color: #4b5563; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 22px; height: 14px; border-radius: 4px; border: 1.5px solid; display: inline-block; }
+  .sw-peach { background: #ffe8c2; border-color: #e8a33d; }
+  .sw-robot { background: #e6f2ff; border-color: #3b82f6; }
+  .sw-human { background: #fff7d6; border-color: #d6b200; }
+  .sw-crm   { background: #efe7fb; border-color: #8b5cf6; }
+  .sw-proc  { background: #f1f3f5; border-color: #9aa4b0; }
+  .sw-dia   { background: #f1f3f5; border-color: #6b7280; width: 22px; height: 14px; transform: rotate(45deg) scale(0.7); border-radius: 0; }
+
+  /* Canvas */
+  .canvas-outer { border: 1px solid #e5e7eb; border-radius: 12px; overflow-x: auto; background: #fff; }
+  .canvas { position: relative; width: 1620px; height: 1330px; margin: 0 auto; }
+
+  .col-head {
+    position: absolute; top: 10px; transform: translateX(-50%);
+    font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 5px 14px; border-radius: 20px; border: 1.5px solid; white-space: nowrap;
+  }
+  .col-rule { position: absolute; top: 40px; width: 500px; height: 2px; opacity: 0.4; }
+
+  .node {
+    position: absolute; display: flex; align-items: center; justify-content: center;
+    text-align: center; font-size: 11.5px; line-height: 1.35; padding: 8px 10px;
+    border: 1.5px solid; border-radius: 12px; cursor: pointer;
+    transition: box-shadow 0.12s ease, transform 0.12s ease;
+    user-select: none;
+  }
+  .node:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.14); transform: translateY(-1px); }
+  .node.selected { box-shadow: 0 0 0 3px rgba(59,130,246,0.35); }
+  .node b { font-weight: 700; }
+
+  .n-peach { background: #ffe8c2; border-color: #e8a33d; font-weight: 700; }
+  .n-robot { background: #e6f2ff; border-color: #3b82f6; }
+  .n-human { background: #fff7d6; border-color: #d6b200; }
+  .n-crm   { background: #efe7fb; border-color: #8b5cf6; }
+  .n-proc  { background: #f1f3f5; border-color: #9aa4b0; }
+  .n-note  { background: #fffbeb; border-color: #f59e0b; border-style: dashed; font-size: 11px; color: #92400e; cursor: default; }
+  .n-note:hover { box-shadow: none; transform: none; }
+
+  .n-diamond { border: none; background: none; }
+  .n-diamond .dia-shape {
+    position: absolute; inset: 0;
+    background: #f1f3f5; border: 1.5px solid #6b7280;
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  }
+  .n-diamond .dia-text { position: relative; z-index: 1; max-width: 62%; font-weight: 600; }
+
+  svg.edges { position: absolute; left: 0; top: 0; pointer-events: none; }
+  svg.edges text { font-size: 11px; font-weight: 700; }
+  .lbl-yes { fill: #15803d; }
+  .lbl-no  { fill: #b91c1c; }
+
+  /* Details panel */
+  .details {
+    margin-top: 18px; border: 1.5px solid #bfdbfe; background: #f8fbff;
+    border-radius: 12px; padding: 16px 20px; min-height: 96px;
+  }
+  .details h3 { font-size: 15px; font-weight: 800; color: #1d4ed8; margin-bottom: 6px; }
+  .details p { font-size: 13px; line-height: 1.6; color: #374151; }
+  .details .hint { color: #6b7280; font-size: 12px; }
+
+  footer { margin-top: 16px; font-size: 10px; color: #9ca3af; letter-spacing: 1px; text-transform: uppercase; text-align: center; }
+
+  @media (max-width: 760px) { h1 { font-size: 18px; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="kicker">Oper8 CRM · Лаборатория Ирика</div>
+    <h1>Блок-схема автоматизации</h1>
+    <div class="sub">Вариант 2: три задачи классической блок-схемой. Нажми на любой блок — детали появятся под схемой.</div>
+    <div class="toplinks">
+      <a href="/oper8-crm-map/">← Вариант 1: интерактивная карта путей</a>
+    </div>
+  </header>
+
+  <div class="legend">
+    <span><span class="sw sw-peach"></span> Старт / итог</span>
+    <span><span class="sw sw-robot"></span> Робот (автомат)</span>
+    <span><span class="sw sw-human"></span> Человек</span>
+    <span><span class="sw sw-crm"></span> CRM / данные</span>
+    <span><span class="sw sw-dia"></span> Решение</span>
+    <span>Линии: <b style="color:#15803d">да</b> / <b style="color:#b91c1c">нет</b></span>
+  </div>
+
+  <div class="canvas-outer">
+  <div class="canvas" id="canvas">
+
+    <!-- Column headers -->
+    <div class="col-head" style="left:260px; color:#1d4ed8; border-color:#3b82f6; background:#eff6ff">Задача 1 · Почта → сделка</div>
+    <div class="col-head" style="left:810px; color:#047857; border-color:#34d399; background:#ecfdf5">Задача 2 · Стандартизация ТЗ</div>
+    <div class="col-head" style="left:1360px; color:#be123c; border-color:#fb7185; background:#fff1f2">Задача 3 · Протоколы</div>
+    <div class="col-rule" style="left:10px;  background:#3b82f6"></div>
+    <div class="col-rule" style="left:560px; background:#34d399"></div>
+    <div class="col-rule" style="left:1110px; background:#fb7185"></div>
+
+    <!-- ============ COLUMN 1 (cx=260) ============ -->
+    <div class="node n-peach" id="n-s1" style="left:110px; top:50px; width:300px; height:56px">Старт: заявка<br>почта · сайт · звонок</div>
+    <div class="node n-robot" id="n-a1" style="left:100px; top:150px; width:320px; height:68px">Робот забирает письмо: читает текст + вложения (в т.ч. OCR)</div>
+    <div class="node n-diamond" id="n-d1" style="left:110px; top:258px; width:300px; height:120px"><div class="dia-shape"></div><div class="dia-text">Это заявка?</div></div>
+    <div class="node n-peach" id="n-m1" style="left:430px; top:286px; width:150px; height:64px">Запись «не заявка»<br>(архив)</div>
+    <div class="node n-robot" id="n-a2" style="left:100px; top:420px; width:320px; height:84px">Заполняет карточку сделки: ОИ · ИНН · компания · объём · 🔗 Я.Диск · 🔗 первичное письмо</div>
+    <div class="node n-diamond" id="n-d2" style="left:110px; top:540px; width:300px; height:120px"><div class="dia-shape"></div><div class="dia-text">Приоритет высокий?</div></div>
+    <div class="node n-human" id="n-h1" style="left:430px; top:562px; width:150px; height:76px">Квалификатор звонит по скрипту</div>
+    <div class="node n-robot" id="n-a3" style="left:100px; top:690px; width:320px; height:70px">Робот пишет клиенту уточняющие вопросы</div>
+    <div class="node n-diamond" id="n-d3" style="left:110px; top:792px; width:300px; height:112px"><div class="dia-shape"></div><div class="dia-text">Клиент ответил?</div></div>
+    <div class="node n-human" id="n-h2" style="left:430px; top:816px; width:150px; height:64px">Передать квалификатору</div>
+    <div class="node n-robot" id="n-a4" style="left:100px; top:924px; width:320px; height:64px">Дозаполняет поля карточки</div>
+    <div class="node n-human" id="n-a5" style="left:100px; top:1030px; width:320px; height:76px">Руководитель продаж распределяет заявку → менеджер продаж (брифование)</div>
+    <div class="node n-peach" id="n-o1" style="left:110px; top:1150px; width:300px; height:64px">✅ Сделка в работе<br>→ переход к Задаче 2</div>
+
+    <!-- ============ COLUMN 2 (cx=810) ============ -->
+    <div class="node n-peach" id="n-s2" style="left:660px; top:50px; width:300px; height:56px">Старт: карточка лида создана</div>
+    <div class="node n-robot" id="n-t1" style="left:650px; top:150px; width:320px; height:76px">Агент собирает данные: письмо · вложения · уточняющие письма · поля amoCRM · папка сделки на Я.Диске</div>
+    <div class="node n-robot" id="n-t2" style="left:650px; top:252px; width:320px; height:76px">Формирует первичное стандартизированное ТЗ: объект · замеры · нормативы · методики · комментарии</div>
+    <div class="node n-diamond" id="n-td1" style="left:660px; top:358px; width:300px; height:120px"><div class="dia-shape"></div><div class="dia-text">Данных достаточно?</div></div>
+    <div class="node n-crm" id="n-t3" style="left:650px; top:508px; width:320px; height:64px">Комментарий в карточке ТЗ: какие вопросы задать клиенту</div>
+    <div class="node n-human" id="n-t4" style="left:650px; top:602px; width:320px; height:76px">Путь Б: сотрудник доуточняет у клиента и вносит ответы в CRM · путь А (робот) — под вопросом у Ирика</div>
+    <div class="node n-diamond" id="n-td2" style="left:660px; top:708px; width:300px; height:112px"><div class="dia-shape"></div><div class="dia-text">Данные дозаполнены?</div></div>
+    <div class="node n-robot" id="n-t5" style="left:650px; top:852px; width:320px; height:76px">Агент собирает финальное стандартизированное ТЗ (триггер: карточка заполнена)</div>
+    <div class="node n-peach" id="n-o2" style="left:660px; top:990px; width:300px; height:70px">✅ Стандартный бланк → расчётчику<br>КП · защита · договор</div>
+    <div class="node n-note" id="n-note2" style="left:650px; top:1100px; width:320px; height:56px">🔁 Довыдача данных для выполнения → повторный прогон тем же модулем</div>
+
+    <!-- ============ COLUMN 3 (cx=1360) ============ -->
+    <div class="node n-peach" id="n-s3" style="left:1210px; top:50px; width:300px; height:56px">Старт: договор оплачен<br>после MVP</div>
+    <div class="node n-human" id="n-p1" style="left:1200px; top:150px; width:320px; height:76px">Передача в исполнение: расчёт ↔ договор · подтверждения лабораторий</div>
+    <div class="node n-human" id="n-p2" style="left:1200px; top:262px; width:320px; height:64px">Распределение заявки между лабораториями</div>
+    <div class="node n-robot" id="n-p3" style="left:1200px; top:362px; width:320px; height:76px">Excel-генераторы протоколов: данные из стандартного ТЗ и справочников (меньше ручного ввода)</div>
+    <div class="node n-diamond" id="n-pd1" style="left:1210px; top:468px; width:300px; height:120px"><div class="dia-shape"></div><div class="dia-text">Сервис проверки: протокол корректен?</div></div>
+    <div class="node n-human" id="n-p4" style="left:1030px; top:490px; width:150px; height:76px">Доработка менеджером</div>
+    <div class="node n-peach" id="n-o3" style="left:1210px; top:630px; width:300px; height:64px">✅ Протокол готов<br>печатная форма → печать</div>
+    <div class="node n-note" id="n-note3" style="left:1200px; top:734px; width:320px; height:64px">НЕ в MVP (решение Ирика). Потенциал: 4–5 чел., ~120–200 т.р./мес</div>
+
+    <svg class="edges" id="edges" width="1620" height="1330">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#4b5563"></path>
+        </marker>
+      </defs>
+    </svg>
+
+  </div>
+  </div>
+
+  <div class="details" id="details">
+    <h3 id="det-title">Нажми на блок</h3>
+    <p id="det-body" class="hint">Кликни по любому блоку на схеме — здесь появится подробное описание шага.</p>
+  </div>
+
+  <footer>Oper8 CRM · блок-схема, вариант 2 · 10.08.2026</footer>
+</div>
+
+<script>
+const EDGES_COLORS = '#4b5563';
+const EDGES = [
+  // Column 1
+  { p: [[260,106],[260,150]] },
+  { p: [[260,218],[260,258]] },
+  { p: [[410,318],[430,318]], label: 'нет', lx: 416, ly: 308, cls: 'lbl-no' },
+  { p: [[260,378],[260,420]], label: 'да', lx: 272, ly: 404, cls: 'lbl-yes' },
+  { p: [[260,504],[260,540]] },
+  { p: [[410,600],[430,600]], label: 'да', lx: 416, ly: 592, cls: 'lbl-yes' },
+  { p: [[260,660],[260,690]], label: 'нет', lx: 272, ly: 680, cls: 'lbl-no' },
+  { p: [[260,760],[260,792]] },
+  { p: [[260,904],[260,924]], label: 'да', lx: 248, ly: 918, cls: 'lbl-yes' },
+  { p: [[410,848],[430,848]], label: 'нет', lx: 416, ly: 840, cls: 'lbl-no' },
+  { p: [[505,880],[505,956],[420,956]] },
+  { p: [[260,988],[260,1030]] },
+  { p: [[505,638],[505,1068],[420,1068]] },
+  { p: [[260,1106],[260,1150]] },
+  // Column 2
+  { p: [[810,106],[810,150]] },
+  { p: [[810,226],[810,252]] },
+  { p: [[810,328],[810,358]] },
+  { p: [[810,478],[810,508]], label: 'нет', lx: 822, ly: 498, cls: 'lbl-no' },
+  { p: [[960,418],[1000,418],[1000,890],[970,890]], label: 'да', lx: 1008, ly: 660, cls: 'lbl-yes' },
+  { p: [[810,572],[810,602]] },
+  { p: [[810,678],[810,708]] },
+  { p: [[660,764],[615,764],[615,418],[660,418]], label: 'нет', lx: 596, ly: 600, cls: 'lbl-no' },
+  { p: [[810,820],[810,852]], label: 'да', lx: 822, ly: 842, cls: 'lbl-yes' },
+  { p: [[810,928],[810,990]] },
+  { p: [[810,1060],[810,1100]] },
+  // Column 3
+  { p: [[1360,106],[1360,150]] },
+  { p: [[1360,226],[1360,262]] },
+  { p: [[1360,326],[1360,362]] },
+  { p: [[1360,438],[1360,468]] },
+  { p: [[1210,528],[1180,528]], label: 'нет', lx: 1186, ly: 518, cls: 'lbl-no' },
+  { p: [[1030,528],[990,528],[990,400],[1200,400]] },
+  { p: [[1360,588],[1360,630]], label: 'да', lx: 1374, ly: 614, cls: 'lbl-yes' },
+  { p: [[1360,694],[1360,734]] },
+];
+
+const DETAILS = {
+  'n-s1':  ['Старт заявки', 'Основной канал — Яндекс.Почта. Заявки с сайта WordPress тоже падают в почту. Звонки сводятся к «пришлите на почту» — без ТЗ ничего сделать нельзя.'],
+  'n-a1':  ['Робот: разбор письма', 'Робот забирает письмо и читает текст + вложения (Word, Excel, PDF, в т.ч. сканы через OCR). Из них вытаскивает контактные и юридические данные лида. Решение команды 10.08: чтение вложений и OCR — уже в MVP.'],
+  'n-d1':  ['Заявка или нет?', 'Первое решение: это заявка, спам или доп. информация по другой сделке. Не заявка → запись «не заявка» и архив. Заявка → дальше по потоку.'],
+  'n-m1':  ['Запись «не заявка»', 'Фиксируется запись, что письмо квалифицировано как не заявка — для статистики и обучения классификатора.'],
+  'n-a2':  ['Автозаполнение карточки', 'Робот заполняет карточку в AMO: объект исследования, ИНН, компания (сверка со справочником, постоянный/новый), примерный объём → приоритет, ссылка на Яндекс.Диск с вложениями и кликабельная ссылка на первичное письмо.'],
+  'n-d2':  ['Приоритизация', 'По объёму и признакам определяется приоритет: высокий — к линии квалификаторов, низкий — робот ведёт переписку сам. Нецелевые → отказное письмо (сначала через человека).'],
+  'n-h1':  ['Квалификатор', 'Звонит по скрипту, попутно заполняет карточку компании. Экономия задачи 1: ≥30% времени квалификаторов.'],
+  'n-a3':  ['Робот: уточняющие вопросы', 'Шаг 1-3: по низкоприоритетным заявкам робот сам пишет клиенту список уточняющих вопросов и ждёт ответа.'],
+  'n-d3':  ['Клиент ответил?', 'Если ответил — данные дозаполняются автоматически. Если нет — заявка всё равно уходит живому квалификатору.'],
+  'n-h2':  ['Передача квалификатору', 'Нет ответа от клиента — сотрудник дозванивается/дописывает сам. Робот не теряет заявку.'],
+  'n-a4':  ['Дозаполнение', 'Робот переносит ответы клиента из переписки в поля карточки.'],
+  'n-a5':  ['Распределение', 'Руководитель продаж смотрит сделку и назначает менеджера продаж. Менеджер проводит брифование, уточняет ТЗ.'],
+  'n-o1':  ['Сделка в работе', 'Заполненная карточка + файлы — вход для Задачи 2 (стандартизация ТЗ).'],
+  'n-s2':  ['Старт задачи 2', 'Триггер от события: карточка лида сформирована.'],
+  'n-t1':  ['Источники данных агента', 'Письма клиента + все вложения, последующие уточняющие письма, заполненные поля amoCRM (в т.ч. заметки сотрудника), при необходимости — папка сделки на Яндекс.Диске. Подтверждено 10.08.'],
+  'n-t2':  ['Первичное ТЗ', 'Агент формирует единый бланк: объект исследования, количество замеров, нормативы (ГОСТ/СанПиН), методики, комментарии.'],
+  'n-td1': ['Проверка полноты', 'Если данных хватает — сразу в финальную сборку (обход по ветке «да»). Если нет — создаётся комментарий с вопросами.'],
+  'n-t3':  ['Комментарий с вопросами', 'В карточке ТЗ агент оставляет список уточняющих вопросов к клиенту — что именно нужно добрать.'],
+  'n-t4':  ['Путь Б: человек доуточняет', 'Предпочтение команды (10.08): сотрудник задаёт клиенту вопросы привычным каналом и вносит ответы в CRM; агент автоматически собирает ТЗ. Путь А (робот сам пишет лиду) — открыт, требует подтверждения Ирика; по токенам дёшев (DeepSeek Flash).'],
+  'n-td2': ['Заполненность карточки', 'ТЗ не формируется, пока карточка не заполнена нужными данными — это триггер. Проверка циклическая.'],
+  'n-t5':  ['Финальное ТЗ', 'Когда все поля на месте — агент автоматически собирает стандартизированное ТЗ. Может запускаться повторно при довыдаче данных для выполнения.'],
+  'n-o2':  ['Расчётчику', 'Готовый бланк уходит расчётчику (автоподбор лабораторий/методик частично автоматизирован). Далее: защита КП → договор → оплата.'],
+  'n-note2':['Повторный прогон', 'Заказчик часто довыдаёт данные позже «для выполнения работ» — то же ТЗ приводится к стандартному виду второй раз тем же модулем.'],
+  'n-s3':  ['Задача 3 — после MVP', 'Внедряется после Задач 1–2 (решение Ирика).'],
+  'n-p1':  ['Передача в исполнение', 'Менеджер исполнения проверяет: расчёт бьётся с договором, есть подтверждения от лабораторий. Эту проверку пока не автоматизируем.'],
+  'n-p2':  ['Распределение', 'Заявка делится между лабораториями. ~85% работ формальные (без выездов), ~15% — реальные выезды.'],
+  'n-p3':  ['Ускорение генераторов', 'Рабочий лист подтягивает данные из стандартного ТЗ (связка с Задачей 2) и справочников — меньше ручного ввода. Шаблоны: 30×1, 3×2 и др.'],
+  'n-pd1': ['Сервис проверки', 'Автопроверка готового протокола: все поля заполнены, бьётся с ТЗ и договором, корректные методики/нормативы, логика чисел. Проверяется форма и согласованность — НЕ качество анализов.'],
+  'n-p4':  ['Доработка', 'Ошибки → менеджер исправляет протокол, потом повторная проверка.'],
+  'n-o3':  ['Протокол готов', 'Печатная форма выводится на печать. Сейчас на оформлении: 4–5 человек.'],
+  'n-note3':['Экономика', 'Текущие затраты на оформление протоколов ~120–200 тыс. руб./мес.'],
+};
+
+const svg = document.getElementById('edges');
+const NS = 'http://www.w3.org/2000/svg';
+for (const e of EDGES) {
+  const poly = document.createElementNS(NS, 'polyline');
+  poly.setAttribute('points', e.p.map(pt => pt.join(',')).join(' '));
+  poly.setAttribute('fill', 'none');
+  poly.setAttribute('stroke', EDGES_COLORS);
+  poly.setAttribute('stroke-width', '1.7');
+  poly.setAttribute('marker-end', 'url(#arrow)');
+  svg.appendChild(poly);
+  if (e.label) {
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', e.lx);
+    t.setAttribute('y', e.ly);
+    t.setAttribute('class', e.cls);
+    t.textContent = e.label;
+    svg.appendChild(t);
+  }
+}
+
+let selected = null;
+document.querySelectorAll('.node').forEach(n => {
+  if (!n.id || !DETAILS[n.id]) { n.classList.add('n-static'); return; }
+  n.setAttribute('title', 'Нажми для деталей');
+  n.addEventListener('click', () => {
+    if (selected) selected.classList.remove('selected');
+    selected = n;
+    n.classList.add('selected');
+    document.getElementById('det-title').textContent = DETAILS[n.id][0];
+    const b = document.getElementById('det-body');
+    b.classList.remove('hint');
+    b.textContent = DETAILS[n.id][1];
+  });
+});
+</script>
+</body>
+</html>
