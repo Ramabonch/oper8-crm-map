@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>ГК Лаборатория — компонентная схема системы</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-width: 100%; background: #fff; }
+  body { color: #1f2937; font-family: "Segoe UI", system-ui, -apple-system, sans-serif; }
+  .page { width: 2400px; margin: 0 auto; padding: 24px 20px 26px; }
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; margin-bottom: 14px; }
+  h1 { margin: 0; font-size: 29px; line-height: 1.15; font-weight: 800; letter-spacing: -.3px; }
+  .sub { margin-top: 7px; color: #6b7280; font-size: 14px; }
+  .scope { padding: 10px 15px; border: 1px solid #93c5fd; border-radius: 10px; background: #eff6ff; color: #1d4ed8; font-size: 13px; font-weight: 700; }
+  .legend { display: flex; align-items: center; gap: 18px; margin: 14px 0 16px; color: #4b5563; font-size: 12px; }
+  .legend-item { display: inline-flex; align-items: center; gap: 7px; }
+  .sw { width: 24px; height: 15px; border: 1.5px solid; border-radius: 4px; }
+  .sw-ext { background: #fff7d6; border-color: #d6b200; }
+  .sw-own { background: #e6f2ff; border-color: #3b82f6; }
+  .sw-data { background: #efe7fb; border-color: #8b5cf6; }
+  .sw-option { background: #fafafa; border-color: #9ca3af; border-style: dashed; }
+  .canvas-outer { border: 1px solid #e5e7eb; border-radius: 14px; overflow: hidden; background: #fff; }
+  .canvas { position: relative; width: 2360px; height: 1140px; overflow: hidden; }
+  .container { position: absolute; z-index: 0; border: 1.5px solid; border-radius: 16px; }
+  .container-title { position: absolute; left: 18px; top: -14px; z-index: 5; padding: 5px 14px; border: 1.5px solid; border-radius: 20px; background: #fff; font-size: 12px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase; }
+  .external { left: 34px; top: 30px; width: 2292px; height: 310px; border-color: #e5c452; background: #fffdf5; }
+  .external .container-title { color: #8a6500; border-color: #e5c452; background: #fffbea; }
+  .ours { left: 34px; top: 390px; width: 2292px; height: 700px; border-color: #93c5fd; background: #fbfdff; }
+  .ours .container-title { color: #1d4ed8; border-color: #93c5fd; background: #eff6ff; }
+  .node { position: absolute; z-index: 3; display: flex; align-items: center; justify-content: center; padding: 13px 16px; border: 1.5px solid; border-radius: 13px; text-align: center; font-size: 13px; line-height: 1.35; overflow: hidden; }
+  .node strong { display: block; margin-bottom: 6px; font-size: 15px; line-height: 1.18; font-weight: 800; }
+  .node small { display: block; margin-top: 5px; color: #64748b; font-size: 10.5px; line-height: 1.3; }
+  .external-node { background: #fff7d6; border-color: #d6b200; }
+  .own-node { background: #e6f2ff; border-color: #3b82f6; }
+  .agent { background: #eafaf3; border-color: #34a879; }
+  .data-node { background: #efe7fb; border-color: #8b5cf6; }
+  .option { background: #fafafa; border-color: #9ca3af; border-style: dashed; color: #4b5563; }
+  .later { background: #f3f4f6; border-color: #9ca3af; border-style: dashed; color: #4b5563; }
+  .cost-note { background: #fffaf0; border-color: #f59e0b; border-style: dashed; color: #92400e; }
+  .no-ui { background: #f8fafc; border-color: #cbd5e1; color: #475569; }
+  .edge-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+  .edge { fill: none; stroke: #4b5563; stroke-width: 2; marker-end: url(#arrow); }
+  .edge.bi { marker-start: url(#arrow-start); }
+  .edge.dashed { stroke: #9ca3af; stroke-dasharray: 8 6; marker-end: url(#arrow-muted); }
+  .edge.green { stroke: #047857; marker-end: url(#arrow-green); }
+  .edge-label { font-size: 11.5px; font-weight: 800; fill: #374151; paint-order: stroke; stroke: #fff; stroke-width: 5px; stroke-linejoin: round; }
+  .edge-label.muted { fill: #6b7280; }
+  .sequence { position: absolute; z-index: 4; left: 290px; top: 1068px; color: #64748b; font-size: 11px; }
+  footer { margin-top: 12px; display: flex; justify-content: space-between; color: #9ca3af; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div>
+      <h1>Компонентная схема системы</h1>
+      <div class="sub">ГК Лаборатория · контур MVP: почта, обработка документов, агент и amoCRM</div>
+    </div>
+    <div class="scope">AMO-only · отдельный интерфейс не требуется</div>
+  </header>
+
+  <div class="legend" aria-label="Легенда">
+    <span class="legend-item"><span class="sw sw-ext"></span>Внешняя система</span>
+    <span class="legend-item"><span class="sw sw-own"></span>Компонент автоматизации</span>
+    <span class="legend-item"><span class="sw sw-data"></span>Данные / журнал</span>
+    <span class="legend-item"><span class="sw sw-option"></span>Опция / вне MVP</span>
+    <span>Стрелки подписаны передаваемыми данными</span>
+  </div>
+
+  <div class="canvas-outer">
+    <div class="canvas" id="canvas">
+      <div class="container external"><div class="container-title">Внешние системы</div></div>
+      <div class="container ours"><div class="container-title">Наша система</div></div>
+
+      <!-- Внешние системы -->
+      <div class="node external-node" id="c-mail" style="left:90px;top:94px;width:350px;height:122px"><div><strong>Почта info@gklab.ru</strong>письма · вложения<small>основной источник заявок</small></div></div>
+      <div class="node external-node" id="c-disk" style="left:535px;top:94px;width:350px;height:122px"><div><strong>Яндекс.Диск</strong>папка сделки<small>вложения · исходное ТЗ · итоговое ТЗ</small></div></div>
+      <div class="node external-node" id="c-form" style="left:980px;top:94px;width:350px;height:122px"><div><strong>Google-форма ТЗ</strong>форма для лаборатории<small>ответы на вопросы и результат</small></div></div>
+      <div class="node external-node" id="c-provider" style="left:1425px;top:94px;width:350px;height:122px"><div><strong>LLM-провайдер</strong>внешний API<small>обработка запросов агента</small></div></div>
+      <div class="node external-node" id="c-amo" style="left:1870px;top:94px;width:390px;height:122px"><div><strong>amoCRM</strong>сделки · контакты · компании · поля КФ.*<small>карточки — рабочий интерфейс сотрудников</small></div></div>
+      <div class="node cost-note" id="c-cost" style="left:1450px;top:244px;width:300px;height:58px"><div><strong style="font-size:12px;margin:0">Расходы LLM оплачивает клиент</strong><small style="margin-top:3px">сумма выделяется отдельной строкой</small></div></div>
+      <div class="node option" id="c-bot" style="left:1845px;top:244px;width:390px;height:58px"><div><strong style="font-size:12px;margin:0">Опция: бот / переписка с клиентом</strong><small style="margin-top:3px">вопросы по ТЗ сразу после квалификации</small></div></div>
+
+      <!-- Наша система -->
+      <div class="node own-node" id="c-gateway" style="left:90px;top:480px;width:370px;height:160px"><div><strong>Почтовый шлюз</strong>приёмка писем · обработка вложений · дедупликация<small>в amoCRM письма могут дублироваться · способ подключения согласуется на старте</small></div></div>
+      <div class="node own-node" id="c-parser" style="left:545px;top:480px;width:370px;height:160px"><div><strong>Парсер документов</strong>текст письма · DOC / DOCX · PDF · XLSX<small>OCR для сканов входит в MVP</small></div></div>
+      <div class="node agent" id="c-agent" style="left:1000px;top:456px;width:500px;height:208px"><div><strong>LLM-агент</strong>извлекает поля · применяет правила по объекту исследования · формирует вопросы · собирает стандартизированное ТЗ<small>первичная версия → ответы менеджера → финальная версия</small></div></div>
+      <div class="node own-node" id="c-api" style="left:1710px;top:472px;width:550px;height:176px"><div><strong>Интеграция amoCRM API v4</strong>сделки · контакты · компании · поля КФ.* · виджет «Дубли»<small>триггеры: новое письмо → обработка; карточка заполнена → генерация ТЗ</small></div></div>
+
+      <div class="node data-node" id="c-db" style="left:545px;top:800px;width:370px;height:142px"><div><strong>Хранилище данных</strong>сделки · письма · вложения · версии ТЗ</div></div>
+      <div class="node data-node" id="c-log" style="left:1030px;top:800px;width:440px;height:142px"><div><strong>Decision log</strong>журнал решений агента<small>Google-таблицы с доступом на редактирование</small></div></div>
+      <div class="node no-ui" id="c-ui" style="left:1550px;top:820px;width:360px;height:102px"><div><strong style="font-size:13px">Без отдельного UI</strong>взаимодействие через карточки amoCRM</div></div>
+      <div class="node later" id="c-stage2" style="left:1970px;top:800px;width:290px;height:142px"><div><strong>Не в MVP · Этап 2</strong>проверка протоколов + ускорение Excel-генераторов</div></div>
+
+      <div class="sequence">Основной поток: письмо → шлюз → парсер → агент → amoCRM / Яндекс.Диск / Google-форма ТЗ</div>
+
+      <svg class="edge-layer" width="2360" height="1140" viewBox="0 0 2360 1140" aria-hidden="true">
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,3 L0,6 Z" fill="#4b5563"/></marker>
+          <marker id="arrow-start" markerWidth="10" markerHeight="10" refX="2" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M8,0 L0,3 L8,6 Z" fill="#4b5563"/></marker>
+          <marker id="arrow-muted" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,3 L0,6 Z" fill="#9ca3af"/></marker>
+          <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,3 L0,6 Z" fill="#047857"/></marker>
+        </defs>
+
+        <!-- Вход и обработка -->
+        <polyline class="edge" points="265,216 265,480"/>
+        <text class="edge-label" x="278" y="358">письмо</text>
+        <polyline class="edge" points="460,560 545,560"/>
+        <text class="edge-label" x="474" y="548">письмо · файлы</text>
+        <polyline class="edge" points="915,560 1000,560"/>
+        <text class="edge-label" x="931" y="548">текст</text>
+
+        <!-- Агент ↔ провайдер -->
+        <polyline class="edge bi" points="1370,456 1370,380 1600,380 1600,216"/>
+        <text class="edge-label" x="1420" y="369">запрос / ответ</text>
+
+        <!-- Агент → amoCRM integration → amoCRM -->
+        <polyline class="edge" points="1500,530 1710,530"/>
+        <text class="edge-label" x="1542" y="518">поля сделки · ТЗ</text>
+        <polyline class="edge" points="1710,594 1500,594"/>
+        <text class="edge-label" x="1555" y="620">ответы · вебхуки</text>
+        <polyline class="edge bi" points="2065,472 2065,216"/>
+        <text class="edge-label" x="2079" y="358">API v4</text>
+
+        <!-- Файлы и финальная форма -->
+        <polyline class="edge bi" points="1120,456 1120,400 710,400 710,216"/>
+        <text class="edge-label" x="790" y="389">файлы · версии ТЗ</text>
+        <polyline class="edge" points="1240,456 1240,216"/>
+        <text class="edge-label" x="1254" y="342">ТЗ · ответы</text>
+
+        <!-- Хранилище и журнал -->
+        <polyline class="edge bi" points="1080,664 1080,730 730,730 730,800"/>
+        <text class="edge-label" x="800" y="718">сделки · письма · вложения · версии</text>
+        <polyline class="edge" points="1250,664 1250,800"/>
+        <text class="edge-label" x="1264" y="744">решения</text>
+
+        <!-- Опционный канал -->
+        <polyline class="edge dashed" points="1500,630 1660,630 1660,320 2040,320 2040,302"/>
+        <text class="edge-label muted" x="1680" y="309">вопросы · ответы · опция</text>
+
+        <!-- Связь отдельного UI с API (показывает отсутствие нового UI) -->
+        <polyline class="edge dashed" points="1910,871 1940,871 1940,648"/>
+        <text class="edge-label muted" x="1952" y="788">работа в amoCRM</text>
+      </svg>
+    </div>
+  </div>
+  <footer><span>ГК Лаборатория · компонентная схема для приложения к КП</span><span>Пунктир — опция или функциональность вне MVP</span></footer>
+</div>
+</body>
+</html>
