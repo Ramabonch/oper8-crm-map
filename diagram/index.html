@@ -136,11 +136,13 @@
   .cycle {
     position:relative; z-index:1;
     border:1.5px dashed #93c5fd; border-radius:18px; background:#f8fbff;
-    padding:20px 18px 22px 46px; margin:8px 0;
+    /* Symmetric side padding keeps the cycle centre on the master flow axis. */
+    padding:20px 46px 22px; margin:8px 0;
   }
   .cycle-cap {
+    position:relative; z-index:3; display:table; margin:0 auto 14px; padding:0 12px;
     font-size:11.5px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase;
-    color:#1d4ed8; text-align:center; margin-bottom:14px;
+    color:#1d4ed8; text-align:center; background:#f8fbff;
   }
   .channels {
     position:relative; z-index:1; border:1.5px solid #bfdbfe; border-radius:15px;
@@ -202,7 +204,7 @@
     .strip { grid-column:1; margin-top:26px; }
     .node { font-size:13px; }
     .node b { font-size:14px; }
-    .cycle { padding:16px 12px 18px 34px; }
+    .cycle { padding:16px 34px 18px; }
     .branch-grid { grid-template-columns:1fr; gap:14px; }
     .ch-row { grid-template-columns:1fr; }
     .cell.side-r { grid-column:1; justify-self:end; padding:0 12px 0 0; }
@@ -483,11 +485,15 @@ function buildSideMobile(fromEl, toEl, e) {
   const fromCy = (fromR.top + fromR.bottom) / 2;
   const toCy = (toR.top + toR.bottom) / 2;
   const xOut = fromR.right + 24;
+  // On narrow phones the archive sits under/right of the diamond; at tablet
+  // width it sits to the right. Enter the *nearest outer edge*, never run
+  // a connector through the archive card itself.
+  const targetX = toR.left > xOut ? toR.left : toR.right;
   const pts = [
     [fromR.right, fromCy],
     [xOut, fromCy],
     [xOut, toCy],
-    [toR.right, toCy]
+    [targetX, toCy]
   ];
   const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
   const minX = Math.min(...xs), maxX = Math.max(...xs);
@@ -528,7 +534,7 @@ function buildSideMobile(fromEl, toEl, e) {
   lbl.textContent = e.label;
   svg.appendChild(lbl);
   flow.appendChild(svg);
-  return { line: svg };
+  return { remove() { svg.remove(); } };
 }
 
 function buildLoop(fromEl, toEl, e) {
@@ -573,7 +579,7 @@ function buildLoop(fromEl, toEl, e) {
   badge.style.left = (x - fr.left - 24) + 'px';
   badge.style.top = ((yOut + yIn) / 2 - fr.top - 46) + 'px';
   flow.appendChild(badge);
-  return { line: svg, badge: badge };
+  return { remove() { svg.remove(); badge.remove(); } };
 }
 
 function buildEdge(e) {
@@ -605,21 +611,50 @@ function buildEdge(e) {
   return line;
 }
 
+/*
+  Connector render discipline
+  ---------------------------
+  The diagram changes height while browser fonts and the responsive grid settle.
+  Drawing immediately on every ResizeObserver event used to leave an earlier
+  connector on the page. That was the source of the stray left-hand arrow from
+  «Клиент уже в базе?» on mobile. Every pass now destroys both the LeaderLine
+  objects and any SVG fallback first, then renders once after two animation
+  frames (when layout coordinates are stable).
+*/
 const leaders = [];
-function draw() {
-  leaders.forEach(l => {
-    try {
-      if (l.badge) { l.line.remove(); l.badge.remove(); }
-      else l.remove();
-    } catch (err) {}
+let drawFrame = 0;
+
+function clearConnectors() {
+  leaders.forEach(line => {
+    try { line.remove(); } catch (err) {}
   });
   leaders.length = 0;
-  for (const e of EDGES) leaders.push(buildEdge(e));
+  // Defensive cleanup for an interrupted/resized prior render.
+  document.querySelectorAll('svg.leader-line, svg.side-line, svg.loop-line, .loop-badge')
+    .forEach(el => el.remove());
 }
 
-window.addEventListener('load', () => { setTimeout(draw, 60); });
-if (window.ResizeObserver) new ResizeObserver(() => draw()).observe(flow);
-window.addEventListener('resize', draw);
+function draw() {
+  clearConnectors();
+  for (const edge of EDGES) {
+    const connector = buildEdge(edge);
+    if (connector) leaders.push(connector);
+  }
+}
+
+function scheduleDraw() {
+  cancelAnimationFrame(drawFrame);
+  drawFrame = requestAnimationFrame(() => {
+    drawFrame = requestAnimationFrame(draw);
+  });
+}
+
+window.addEventListener('load', () => {
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleDraw);
+  else scheduleDraw();
+});
+if (window.ResizeObserver) new ResizeObserver(scheduleDraw).observe(flow);
+window.addEventListener('resize', scheduleDraw);
 
 // ===== Details panel =====
 const details = document.getElementById('details');
