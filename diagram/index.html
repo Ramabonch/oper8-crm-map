@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow, noarchive">
-<title>Oper8 CRM — Блок-схема архитектуры автоматизации</title>
+<title>Блок-схема архитектуры автоматизации</title>
 <style>
   :root {
     --peach-bg:#ffe8c2; --peach-bd:#e8a33d;
@@ -51,7 +51,14 @@
 
   /* ===== Flow ===== */
   .flow { position:relative; padding:6px 0 30px; }
-  .flow > svg.edges { position:absolute; left:0; top:0; pointer-events:none; z-index:2; overflow:visible; }
+  .leader-line { z-index:2 !important; pointer-events:none !important; }
+  .leader-line svg { overflow:visible; }
+  .loop-badge {
+    position:absolute; z-index:3; writing-mode:vertical-rl;
+    font-size:10.5px; font-weight:700; color:#b91c1c; background:#ffffff;
+    border:1px solid #fecaca; border-radius:8px; padding:5px 3px; letter-spacing:.3px;
+    box-shadow:0 1px 4px rgba(0,0,0,.08);
+  }
 
   .row { display:grid; grid-template-columns:1fr min(600px,100%) 1fr; align-items:center; margin:14px 0; }
   .cell.main { grid-column:2; min-width:0; }
@@ -185,13 +192,6 @@
 
   footer { margin-top:26px; font-size:10px; color:#9ca3af; letter-spacing:1.2px; text-transform:uppercase; text-align:center; }
 
-  svg.edges path, svg.edges polyline { fill:none; stroke:var(--line); stroke-width:1.8; stroke-linejoin:round; }
-  svg.edges path.dash { stroke:#c9a227; stroke-width:1.6; stroke-dasharray:6 5; }
-  svg.edges text { font-size:11.5px; font-weight:700; font-family:inherit; }
-  svg.edges text.lbl-yes { fill:var(--yes); }
-  svg.edges text.lbl-no  { fill:var(--no); }
-  svg.edges text.lbl-mid { fill:#9ca3af; font-weight:600; }
-
   /* ================= MOBILE ================= */
   @media (max-width:899px) {
     .page { padding:18px 12px 40px; }
@@ -221,13 +221,9 @@
 <div class="page">
 
   <header>
-    <div class="kicker">Oper8 CRM · Архитектура автоматизации</div>
+    <div class="kicker">Архитектура автоматизации</div>
     <h1>Блок-схема архитектуры</h1>
     <div class="sub">Письмо клиента → карточки в CRM и первичное ТЗ → цикл досбора данных → готовое стандартизированное ТЗ. Нажмите на любой блок — подробности появятся внизу.</div>
-    <div class="toplinks">
-      <a href="/oper8-crm-map/">← Карта автоматизации</a>
-      <a href="/oper8-crm-map/flowchart/">Вариант 2 (старый flowchart)</a>
-    </div>
   </header>
 
   <div class="legend">
@@ -241,16 +237,6 @@
   </div>
 
   <div class="flow" id="flow">
-    <svg class="edges" id="edges" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#4b5563"></path>
-        </marker>
-        <marker id="arrow-dash" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#c9a227"></path>
-        </marker>
-      </defs>
-    </svg>
 
     <!-- ================= SECTION A ================= -->
     <div class="row"><div class="strip" style="--sc:#3b82f6"><i>A</i> Приём письма</div></div>
@@ -420,7 +406,7 @@
 
   </div>
 
-  <footer>Oper8 CRM · блок-схема архитектуры v3 · 13.08.2026</footer>
+  <footer>Блок-схема архитектуры автоматизации · 13.08.2026</footer>
 </div>
 
 <div class="details" id="details" aria-live="polite">
@@ -429,6 +415,7 @@
   <p id="det-body" class="hint">Кликните по любому блоку схемы — здесь появится подробное описание шага.</p>
 </div>
 
+<script src="leader-line.min.js"></script>
 <script>
 const DETAILS = {
   'a-start':   ['Старт: письмо клиента', 'Основной канал — почта лаборатории (заявки с сайта тоже приходят сюда). В письме: ИНН, компания, объект исследования. Во вложениях — ТЗ, документы, сканы.'],
@@ -469,100 +456,112 @@ const EDGES = [
   { from:'c-manager',  to:'c-channels' },
   { from:'c-channels', to:'c-full' },
   { from:'c-full',     to:'d-done', label:'да', cls:'lbl-yes', dx:16 },
-  { from:'c-full',     to:'c-gaps', type:'loop', label:'нет — новый цикл вопросов', cls:'lbl-no' },
+  { from:'c-full',     to:'c-gaps', type:'loop', label:'нет — новый цикл', cls:'lbl-no' },
   { from:'d-done',     to:'d-note-bot', dash:true },
   { from:'d-note-bot', to:'d-note-t3', dash:true }
 ];
 
 const flow = document.getElementById('flow');
-const svg = document.getElementById('edges');
-const NS = 'http://www.w3.org/2000/svg';
-const DEFS = svg.querySelector('defs');
 
 function isMobile() { return window.matchMedia('(max-width:899px)').matches; }
 
-function pos(id) {
-  const el = document.querySelector('[data-id="' + id + '"]');
-  if (!el) return null;
-  const f = flow.getBoundingClientRect();
-  const r = el.getBoundingClientRect();
-  return {
-    left: r.left - f.left, top: r.top - f.top,
-    right: r.right - f.left, bottom: r.bottom - f.top,
-    cx: (r.left + r.right) / 2 - f.left, cy: (r.top + r.bottom) / 2 - f.top
-  };
+const STYLE = {
+  color: '#4b5563', size: 2.4, startPlug: 'disc', endPlug: 'arrow3',
+  endPlugSize: 2.6, startPlugSize: 1.1, outlineColor: '#ffffff', outlineSize: 0.4,
+  startSocket: 'bottom', endSocket: 'top', path: 'grid'
+};
+
+function socketFor(edge, start) {
+  if (edge.type === 'side') return start ? 'right' : 'left';
+  if (edge.type === 'loop') return start ? 'left' : 'left';
+  return start ? 'bottom' : 'top';
 }
 
-function mkPath(d, dash) {
-  const p = document.createElementNS(NS, 'path');
-  p.setAttribute('d', d);
-  if (dash) { p.setAttribute('class', 'dash'); p.setAttribute('marker-end', 'url(#arrow-dash)'); }
-  else p.setAttribute('marker-end', 'url(#arrow)');
-  svg.appendChild(p);
-  return p;
-}
-function mkText(x, y, str, cls, anchor, rotate) {
-  const t = document.createElementNS(NS, 'text');
-  t.setAttribute('x', x); t.setAttribute('y', y);
-  t.setAttribute('class', cls || '');
-  if (anchor) t.setAttribute('text-anchor', anchor);
-  if (rotate) t.setAttribute('transform', 'rotate(-90 ' + x + ' ' + y + ')');
-  t.textContent = str;
-  svg.appendChild(t);
+function buildLoopMobile(fromEl, toEl, e) {
+  const fr = flow.getBoundingClientRect();
+  const frRect = fromEl.getBoundingClientRect();
+  const toRect = toEl.getBoundingClientRect();
+  const x = fr.right - 18;                 // линия у правого края flow
+  const yOut = frRect.top + 10;            // выход у верха c-full
+  const yIn = toRect.bottom - 10;          // вход у низа c-gaps
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'loop-line');
+  svg.setAttribute('width', '26');
+  svg.setAttribute('height', String(Math.max(20, yIn - yOut)));
+  svg.style.position = 'absolute';
+  svg.style.left = (x - fr.left - 13) + 'px';
+  svg.style.top = (yOut - fr.top) + 'px';
+  svg.style.overflow = 'visible';
+  svg.style.pointerEvents = 'none';
+  svg.style.zIndex = '2';
+  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+  marker.setAttribute('id', 'loop-arrow');
+  marker.setAttribute('markerWidth', '8'); marker.setAttribute('markerHeight', '8');
+  marker.setAttribute('refX', '6'); marker.setAttribute('refY', '4');
+  marker.setAttribute('orient', 'auto');
+  const mp = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  mp.setAttribute('d', 'M0,0 L7,4 L0,8 Z'); mp.setAttribute('fill', '#4b5563');
+  marker.appendChild(mp);
+  svg.appendChild(marker);
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('x1', '13'); line.setAttribute('y1', '0');
+  line.setAttribute('x2', '13'); line.setAttribute('y2', String(yIn - yOut));
+  line.setAttribute('stroke', '#4b5563'); line.setAttribute('stroke-width', '2');
+  line.setAttribute('stroke-dasharray', '6 5');
+  line.setAttribute('marker-end', 'url(#loop-arrow)');
+  svg.appendChild(line);
+  flow.appendChild(svg);
+  const badge = document.createElement('div');
+  badge.className = 'loop-badge';
+  badge.textContent = e.label;
+  badge.style.left = (x - fr.left - 24) + 'px';
+  badge.style.top = ((yOut + yIn) / 2 - fr.top - 46) + 'px';
+  flow.appendChild(badge);
+  return { line: svg, badge: badge };
 }
 
-function drawEdge(e) {
-  const A = pos(e.from), B = pos(e.to);
-  if (!A || !B) return;
+function buildEdge(e) {
+  const fromEl = document.querySelector('[data-id="' + e.from + '"]');
+  const toEl = document.querySelector('[data-id="' + e.to + '"]');
+  if (!fromEl || !toEl) return;
 
-  if (e.type === 'loop') {
-    const off = isMobile() ? 26 : 40;
-    const x = Math.max(6, Math.min(A.left, B.left) - off);
-    mkPath('M ' + A.left + ' ' + A.cy + ' L ' + x + ' ' + A.cy + ' L ' + x + ' ' + B.cy + ' L ' + B.left + ' ' + B.cy);
-    mkText(x + 12, (A.cy + B.cy) / 2, e.label, e.cls, 'middle', true);
-    return;
+  if (e.type === 'loop' && isMobile()) {
+    return buildLoopMobile(fromEl, toEl, e);
   }
 
-  if (e.type === 'side') {
-    if (B.left > A.right + 24) {
-      // рядом (desktop): горизонталь из правой вершины ромба
-      if (Math.abs(A.cy - B.cy) < 5) {
-        mkPath('M ' + A.right + ' ' + A.cy + ' L ' + B.left + ' ' + B.cy);
-      } else {
-        const xm = (A.right + B.left) / 2;
-        mkPath('M ' + A.right + ' ' + A.cy + ' L ' + xm + ' ' + A.cy + ' L ' + xm + ' ' + B.cy + ' L ' + B.left + ' ' + B.cy);
-      }
-      mkText((A.right + B.left) / 2, Math.min(A.cy, B.cy) - 8, e.label, e.cls, 'middle');
-    } else {
-      // стопкой (mobile): вправо, вниз, в правый край
-      const xOut = A.right + 16;
-      mkPath('M ' + A.right + ' ' + A.cy + ' L ' + xOut + ' ' + A.cy + ' L ' + xOut + ' ' + B.cy + ' L ' + B.right + ' ' + B.cy);
-      mkText(xOut, A.cy - 8, e.label, e.cls, 'middle');
-    }
-    return;
+  const opts = Object.assign({}, STYLE, {
+    startSocket: socketFor(e, true),
+    endSocket: socketFor(e, false)
+  });
+  if (e.dash) {
+    opts.dash = { len: 6, gap: 5, animation: false };
+    opts.color = '#c9a227';
+    opts.endPlug = 'arrow2';
   }
-
-  // вертикальный поток: низ источника → верх цели
-  const x1 = A.cx, y1 = A.bottom, x2 = B.cx, y2 = B.top;
-  if (Math.abs(x1 - x2) < 4) {
-    mkPath('M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2, e.dash);
-  } else {
-    const ym = (y1 + y2) / 2;
-    mkPath('M ' + x1 + ' ' + y1 + ' L ' + x1 + ' ' + ym + ' L ' + x2 + ' ' + ym + ' L ' + x2 + ' ' + y2, e.dash);
+  if (e.loop) { opts.dash = { len: 6, gap: 5, animation: false }; opts.path = 'grid'; }
+  const line = new LeaderLine(fromEl, toEl, opts);
+  if (e.label) {
+    line.setOptions({
+      middleLabel: LeaderLine.captionLabel(e.label, {
+        fontSize: 12, fontWeight: 700, color: e.cls === 'lbl-no' ? '#b91c1c' : '#15803d',
+        outlineColor: '#ffffff', outlineWidth: 3
+      })
+    });
   }
-  if (e.label) mkText(x1 + (e.dx || 9), (y1 + y2) / 2 + 4, e.label, e.cls, e.anchor || 'start');
+  return line;
 }
 
+const leaders = [];
 function draw() {
-  while (svg.childNodes.length > 1) svg.removeChild(svg.lastChild);
-  svg.appendChild(DEFS);
-  svg.setAttribute('width', flow.offsetWidth);
-  svg.setAttribute('height', flow.offsetHeight);
-  svg.setAttribute('viewBox', '0 0 ' + flow.offsetWidth + ' ' + flow.offsetHeight);
-  for (const e of EDGES) drawEdge(e);
+  leaders.forEach(l => {
+    try { if (l.line) l.line.remove(); } catch (err) {}
+    try { if (l.badge) l.badge.remove(); } catch (err) {}
+  });
+  leaders.length = 0;
+  for (const e of EDGES) leaders.push(buildEdge(e));
 }
 
-window.addEventListener('load', draw);
+window.addEventListener('load', () => { setTimeout(draw, 60); });
 if (window.ResizeObserver) new ResizeObserver(() => draw()).observe(flow);
 window.addEventListener('resize', draw);
 
