@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>Oper8 CRM — Блок-схема архитектуры автоматизации</title>
+<style>
+  :root {
+    --peach-bg:#ffe8c2; --peach-bd:#e8a33d;
+    --robot-bg:#e6f2ff; --robot-bd:#3b82f6;
+    --human-bg:#fff7d6; --human-bd:#d6b200;
+    --crm-bg:#efe7fb;   --crm-bd:#8b5cf6;
+    --proc-bg:#f1f3f5;  --proc-bd:#9aa4b0;
+    --note-bg:#fffbeb;  --note-bd:#f59e0b;
+    --ink:#1f2937; --muted:#6b7280; --line:#4b5563;
+    --yes:#15803d; --no:#b91c1c;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body {
+    background:#ffffff;
+    font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+    color:var(--ink);
+    -webkit-tap-highlight-color:transparent;
+  }
+  .page { max-width:1280px; margin:0 auto; padding:22px 14px 200px; }
+
+  /* ===== Header ===== */
+  header { margin-bottom:14px; }
+  .kicker { font-size:11px; letter-spacing:2.6px; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  h1 { font-size:25px; font-weight:800; letter-spacing:.2px; line-height:1.2; }
+  .sub { margin-top:7px; font-size:13.5px; color:var(--muted); line-height:1.5; max-width:720px; }
+  .toplinks { margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; }
+  .toplinks a {
+    font-size:12px; text-decoration:none; color:#1d4ed8; border:1px solid #bfdbfe;
+    padding:6px 12px; border-radius:8px; background:#eff6ff;
+  }
+  .toplinks a:hover { background:#dbeafe; }
+
+  /* ===== Legend ===== */
+  .legend { display:flex; flex-wrap:wrap; gap:10px 16px; margin:14px 0 20px; font-size:12px; color:#4b5563; }
+  .legend span { display:inline-flex; align-items:center; gap:6px; }
+  .sw { width:22px; height:14px; border-radius:4px; border:1.5px solid; display:inline-block; flex-shrink:0; }
+  .sw-peach { background:var(--peach-bg); border-color:var(--peach-bd); }
+  .sw-robot { background:var(--robot-bg); border-color:var(--robot-bd); }
+  .sw-human { background:var(--human-bg); border-color:var(--human-bd); }
+  .sw-crm   { background:var(--crm-bg);   border-color:var(--crm-bd); }
+  .sw-note  { background:var(--note-bg);  border-color:var(--note-bd); border-style:dashed; }
+  .sw-dia   { background:var(--proc-bg); border-color:#6b7280; transform:rotate(45deg) scale(.62); border-radius:2px; }
+
+  /* ===== Flow ===== */
+  .flow { position:relative; padding:6px 0 30px; }
+  .flow > svg.edges { position:absolute; left:0; top:0; pointer-events:none; z-index:2; overflow:visible; }
+
+  .row { display:grid; grid-template-columns:1fr min(600px,100%) 1fr; align-items:center; margin:14px 0; }
+  .cell.main { grid-column:2; min-width:0; }
+  .cell.side-r { grid-column:3; justify-self:start; padding-left:28px; min-width:0; }
+
+  .strip {
+    grid-column:2; display:flex; align-items:center; gap:9px;
+    font-size:11.5px; font-weight:800; letter-spacing:1.8px; text-transform:uppercase;
+    color:#374151; margin:30px 0 2px;
+  }
+  .strip i {
+    font-style:normal; display:inline-flex; align-items:center; justify-content:center;
+    width:22px; height:22px; border-radius:6px; font-size:12px; color:#fff; background:var(--sc,#3b82f6);
+  }
+  .strip::after { content:''; flex:1; height:1.5px; background:linear-gradient(90deg, var(--sc,#3b82f6), transparent); opacity:.45; }
+
+  /* ===== Nodes ===== */
+  .node {
+    position:relative; z-index:1;
+    background:#fff; border:1.5px solid var(--proc-bd); border-radius:13px;
+    padding:13px 16px; text-align:center; cursor:pointer; user-select:none;
+    transition:box-shadow .13s ease, transform .13s ease;
+    font-size:13px; line-height:1.4;
+  }
+  .node:hover { box-shadow:0 5px 16px rgba(15,23,42,.13); transform:translateY(-1px); }
+  .node:focus-visible { outline:3px solid rgba(59,130,246,.45); outline-offset:2px; }
+  .node.selected { box-shadow:0 0 0 3px rgba(59,130,246,.35); }
+  .node b { display:block; font-size:14.5px; font-weight:700; line-height:1.35; }
+  .node span { display:block; margin-top:4px; font-size:12.5px; color:#4b5563; line-height:1.45; }
+
+  .n-peach { background:var(--peach-bg); border-color:var(--peach-bd); }
+  .n-robot { background:var(--robot-bg); border-color:var(--robot-bd); }
+  .n-human { background:var(--human-bg); border-color:var(--human-bd); }
+  .n-crm   { background:var(--crm-bg);   border-color:var(--crm-bd); }
+  .n-proc  { background:var(--proc-bg);  border-color:var(--proc-bd); }
+  .n-muted { opacity:.85; }
+
+  .node.diamond {
+    border:none; background:none; min-height:120px; max-width:440px; margin:0 auto;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:12px; cursor:pointer; user-select:none;
+  }
+  .node.diamond .dia { position:absolute; clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%); }
+  .node.diamond .dia.o { inset:0; background:#6b7280; }
+  .node.diamond .dia.i { inset:2px; background:var(--proc-bg); }
+  .node.diamond b { position:relative; z-index:1; max-width:66%; font-size:14.5px; line-height:1.3; }
+  .node.diamond span { position:relative; z-index:1; max-width:58%; margin-top:3px; }
+  .node.diamond.selected .dia.o { background:#3b82f6; }
+
+  /* ===== Section A: side branch (archive) ===== */
+  .cell.s-archive { max-width:300px; }
+
+  /* ===== Branch grid (Task: duplicates) ===== */
+  .branch-grid {
+    position:relative; z-index:1; display:grid; grid-template-columns:1.35fr 1fr; gap:18px;
+    cursor:pointer;
+  }
+  .branch { display:flex; flex-direction:column; gap:10px; min-width:0; }
+  .branch-tag {
+    align-self:center; font-size:11px; font-weight:800; letter-spacing:.8px; text-transform:uppercase;
+    padding:5px 12px; border-radius:20px; border:1.5px solid; white-space:nowrap;
+  }
+  .tag-no  { background:#fef2f2; border-color:#fecaca; color:var(--no); }
+  .tag-yes { background:#f0fdf4; border-color:#bbf7d0; color:var(--yes); }
+  .group {
+    border:1.5px solid #c7d2fe; border-radius:15px; background:#fbfaff;
+    padding:14px 12px 12px; display:flex; flex-direction:column; gap:9px;
+  }
+  .group-cap { font-size:11.5px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color:#6d28d9; text-align:center; margin-bottom:2px; }
+  .group .node { padding:10px 12px; }
+  .group .node b { font-size:13.5px; }
+  .col-exists { justify-content:center; }
+
+  /* ===== Cycle section (Task: data collection) ===== */
+  .cycle {
+    position:relative; z-index:1;
+    border:1.5px dashed #93c5fd; border-radius:18px; background:#f8fbff;
+    padding:20px 18px 22px 46px; margin:8px 0;
+  }
+  .cycle-cap {
+    font-size:11.5px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase;
+    color:#1d4ed8; text-align:center; margin-bottom:14px;
+  }
+  .channels {
+    position:relative; z-index:1; border:1.5px solid #bfdbfe; border-radius:15px;
+    background:#f3f8ff; padding:14px 12px 12px; cursor:pointer;
+  }
+  .channels .group-cap { color:#1d4ed8; }
+  .ch-row { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .ch-row .node { padding:11px 10px; }
+  .ch-row .node b { font-size:13.5px; }
+  .ch-row .node span { font-size:11.5px; }
+
+  /* ===== MVP boundary ===== */
+  .mvp-line { display:flex; align-items:center; gap:12px; margin:34px 0 6px; }
+  .mvp-line::before, .mvp-line::after { content:''; flex:1; border-top:2px dashed #d1d5db; }
+  .mvp-line span {
+    font-size:11px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:#9ca3af;
+    padding:4px 12px; border:1.5px dashed #d1d5db; border-radius:20px; background:#fff; white-space:nowrap;
+  }
+
+  /* ===== Notes (outside MVP) ===== */
+  .n-note {
+    background:var(--note-bg); border-color:var(--note-bd); border-style:dashed;
+    color:#92400e; text-align:left; display:flex; gap:10px; align-items:flex-start;
+  }
+  .n-note b { font-size:13.5px; color:#92400e; }
+  .n-note span { color:#a16207; }
+  .n-note .ico { font-size:18px; line-height:1.2; flex-shrink:0; }
+  .notes-col { display:flex; flex-direction:column; gap:12px; margin-top:6px; }
+
+  /* ===== Details panel ===== */
+  .details {
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    background:#f8fbff; border-top:2px solid #bfdbfe;
+    box-shadow:0 -6px 22px rgba(30,64,175,.16);
+    border-radius:16px 16px 0 0;
+    padding:14px 22px 16px;
+    max-height:180px; overflow-y:auto;
+    transform:translateY(105%); transition:transform .22s ease;
+  }
+  .details.open { transform:translateY(0); }
+  .details h3 { font-size:14.5px; font-weight:800; color:#1d4ed8; margin-bottom:5px; padding-right:30px; }
+  .details p { font-size:13.5px; line-height:1.55; color:#374151; }
+  .details .hint { color:var(--muted); }
+  .details .close {
+    display:none; position:absolute; top:8px; right:12px;
+    width:32px; height:32px; border:none; background:#e2e8f0; color:#334155;
+    border-radius:50%; font-size:18px; line-height:1; cursor:pointer;
+  }
+
+  footer { margin-top:26px; font-size:10px; color:#9ca3af; letter-spacing:1.2px; text-transform:uppercase; text-align:center; }
+
+  svg.edges path, svg.edges polyline { fill:none; stroke:var(--line); stroke-width:1.8; stroke-linejoin:round; }
+  svg.edges path.dash { stroke:#c9a227; stroke-width:1.6; stroke-dasharray:6 5; }
+  svg.edges text { font-size:11.5px; font-weight:700; font-family:inherit; }
+  svg.edges text.lbl-yes { fill:var(--yes); }
+  svg.edges text.lbl-no  { fill:var(--no); }
+  svg.edges text.lbl-mid { fill:#9ca3af; font-weight:600; }
+
+  /* ================= MOBILE ================= */
+  @media (max-width:899px) {
+    .page { padding:18px 12px 40px; }
+    h1 { font-size:20px; }
+    .sub { font-size:13px; }
+    .row { grid-template-columns:1fr; margin:12px 0; }
+    .cell.main { grid-column:1; }
+    .strip { grid-column:1; margin-top:26px; }
+    .node { font-size:13px; }
+    .node b { font-size:14px; }
+    .cycle { padding:16px 12px 18px 34px; }
+    .branch-grid { grid-template-columns:1fr; gap:14px; }
+    .ch-row { grid-template-columns:1fr; }
+    .cell.side-r { grid-column:1; justify-self:end; padding:0 12px 0 0; }
+    .cell.s-archive { max-width:170px; }
+    .node.diamond { max-width:320px; min-height:112px; }
+    .details {
+      transform:translateY(105%); transition:transform .22s ease;
+      max-height:46vh; padding:16px 18px 18px;
+    }
+    .details.open { transform:translateY(0); }
+    .details .close { display:block; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="kicker">Oper8 CRM · Архитектура автоматизации</div>
+    <h1>Блок-схема архитектуры</h1>
+    <div class="sub">Письмо клиента → карточки в CRM и первичное ТЗ → цикл досбора данных → готовое стандартизированное ТЗ. Нажмите на любой блок — подробности появятся внизу.</div>
+    <div class="toplinks">
+      <a href="/oper8-crm-map/">← Карта автоматизации</a>
+      <a href="/oper8-crm-map/flowchart/">Вариант 2 (старый flowchart)</a>
+    </div>
+  </header>
+
+  <div class="legend">
+    <span><span class="sw sw-peach"></span> Старт / итог</span>
+    <span><span class="sw sw-robot"></span> Агент (автомат)</span>
+    <span><span class="sw sw-human"></span> Человек</span>
+    <span><span class="sw sw-crm"></span> CRM / данные</span>
+    <span><span class="sw sw-dia"></span> Решение</span>
+    <span><span class="sw sw-note"></span> Вне MVP</span>
+    <span>Линии: <b style="color:var(--yes)">да</b> / <b style="color:var(--no)">нет</b></span>
+  </div>
+
+  <div class="flow" id="flow">
+    <svg class="edges" id="edges" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#4b5563"></path>
+        </marker>
+        <marker id="arrow-dash" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#c9a227"></path>
+        </marker>
+      </defs>
+    </svg>
+
+    <!-- ================= SECTION A ================= -->
+    <div class="row"><div class="strip" style="--sc:#3b82f6"><i>A</i> Приём письма</div></div>
+
+    <div class="sec-a">
+      <div class="row">
+        <div class="cell main m-isreq">
+          <div class="node n-peach" data-id="a-start" tabindex="0">
+            <b>Старт: письмо клиента</b>
+            <span>заявка приходит на почту лаборатории</span>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="cell main">
+          <div class="node n-robot" data-id="a-read" tabindex="0">
+            <b>Агент читает письмо</b>
+            <span>текст всегда · вложения и сканы через OCR</span>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="cell main">
+          <div class="node diamond" data-id="a-isreq" tabindex="0">
+            <div class="dia o"></div><div class="dia i"></div>
+            <b>Это заявка?</b>
+          </div>
+        </div>
+        <div class="cell side-r s-archive">
+          <div class="node n-proc n-muted" data-id="a-archive" tabindex="0">
+            <b>Запись «не заявка»</b>
+            <span>архив · отсев под контролем человека</span>
+          </div>
+        </div>
+      </div>
+      <div class="row row-dup">
+        <div class="cell main">
+          <div class="node diamond" data-id="a-dup" tabindex="0">
+            <div class="dia o"></div><div class="dia i"></div>
+            <b>Клиент уже в базе?</b>
+            <span>виджет «Дубли»: номер · email · ИНН</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SECTION B ================= -->
+    <div class="row"><div class="strip" style="--sc:#8b5cf6"><i>B</i> Создание каркаса</div></div>
+
+    <div class="row">
+      <div class="cell main">
+        <div class="branch-grid" data-id="b-branch" tabindex="0">
+          <div class="branch col-new">
+            <div class="branch-tag tag-no">нет — новый клиент</div>
+            <div class="group">
+              <div class="group-cap">Агент создаёт 4 сущности</div>
+              <div class="node n-crm" data-id="b-new-1" tabindex="0"><b>1 · Первичная карточка контакта</b></div>
+              <div class="node n-crm" data-id="b-new-2" tabindex="0"><b>2 · Первичная карточка компании</b></div>
+              <div class="node n-crm" data-id="b-new-3" tabindex="0"><b>3 · Сделка</b><span>поля КФ.* · папка на Яндекс.Диске, если приложено ТЗ</span></div>
+              <div class="node n-crm" data-id="b-new-4" tabindex="0"><b>4 · Первичное стандартизированное ТЗ</b><span>шаблон по объекту исследования</span></div>
+            </div>
+          </div>
+          <div class="branch col-exists">
+            <div class="branch-tag tag-yes">да — уже в базе</div>
+            <div class="node n-robot" data-id="b-link" tabindex="0">
+              <b>Сделка привязывается к существующим карточкам</b>
+              <span>контакта и компании — новые не создаются</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="cell main">
+        <div class="node n-robot" data-id="b-priority" tabindex="0">
+          <b>Агент назначает приоритет заявки</b>
+          <span>сразу по данным письма — влияет на скорость обработки</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SECTION C ================= -->
+    <div class="row"><div class="strip" style="--sc:#047857"><i>C</i> Цикл досбора</div></div>
+
+    <div class="cycle">
+      <div class="cycle-cap">Цикл повторяется, пока все поля не заполнены</div>
+
+      <div class="row">
+        <div class="cell main">
+          <div class="node n-robot" data-id="c-gaps" tabindex="0">
+            <b>Агент определяет недостающие данные</b>
+            <span>для всех полей карточек и финального ТЗ</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="cell main">
+          <div class="node n-crm" data-id="c-comment" tabindex="0">
+            <b>Комментарий в сделке: список вопросов клиенту</b>
+            <span>что нужно задать, чтобы заполнить недостающие данные</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="cell main">
+          <div class="node n-human" data-id="c-manager" tabindex="0">
+            <b>Менеджер продаж связывается с клиентом</b>
+            <span>дособирает информацию · один цикл наполняет и карточки, и ТЗ</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="cell main">
+          <div class="channels" data-id="c-channels" tabindex="0">
+            <div class="group-cap">Ответы возвращаются агенту тремя путями</div>
+            <div class="ch-row">
+              <div class="node n-robot" data-id="c-ch-call" tabindex="0"><b>📞 Звонок</b><span>запись транскрибируется → агенту</span></div>
+              <div class="node n-robot" data-id="c-ch-chat" tabindex="0"><b>💬 Переписка</b><span>мессенджер / почта — агент подхватывает сам</span></div>
+              <div class="node n-robot" data-id="c-ch-manual" tabindex="0"><b>⌨️ Ручное заполнение</b><span>агент сверяет с форматом и авто-исправляет ошибки</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="cell main">
+          <div class="node diamond" data-id="c-full" tabindex="0">
+            <div class="dia o"></div><div class="dia i"></div>
+            <b>Все поля карточек и ТЗ заполнены?</b>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SECTION D ================= -->
+    <div class="mvp-line"><span>граница MVP</span></div>
+
+    <div class="row"><div class="strip" style="--sc:#e8a33d"><i>D</i> Результат</div></div>
+
+    <div class="row">
+      <div class="cell main">
+        <div class="node n-peach" data-id="d-done" tabindex="0">
+          <b>✅ Задачи 1 и 2 выполнены</b>
+          <span>финальное стандартизированное ТЗ готово → расчёт КП</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="cell main">
+        <div class="notes-col">
+          <div class="node n-note" data-id="d-note-bot" tabindex="0">
+            <div class="ico">🤖</div>
+            <div><b>Опция вне MVP: автопереписка агента с клиентом</b><span>для низко- и среднеприоритетных заявок — агент сам задаёт вопросы и ждёт ответы</span></div>
+          </div>
+          <div class="node n-note" data-id="d-note-t3" tabindex="0">
+            <div class="ico">📋</div>
+            <div><b>Задача 3: проверка протоколов — не в MVP</b><span>просьба Ирика — вернёмся после согласования архитектуры задач 1–2</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Oper8 CRM · блок-схема архитектуры v3 · 13.08.2026</footer>
+</div>
+
+<div class="details" id="details" aria-live="polite">
+  <button class="close" id="det-close" aria-label="Закрыть">×</button>
+  <h3 id="det-title">Нажмите на блок</h3>
+  <p id="det-body" class="hint">Кликните по любому блоку схемы — здесь появится подробное описание шага.</p>
+</div>
+
+<script>
+const DETAILS = {
+  'a-start':   ['Старт: письмо клиента', 'Основной канал — почта лаборатории (заявки с сайта тоже приходят сюда). В письме: ИНН, компания, объект исследования. Во вложениях — ТЗ, документы, сканы.'],
+  'a-read':    ['Агент читает письмо', 'Текст письма читается всегда: ИНН, компания, объект исследования. Вложения разбираются уже в MVP — в них контактные и юридические данные лида; сканы через OCR. В карточке сделки сохраняется кликабельная ссылка на первичное письмо для сверки с первоисточником.'],
+  'a-isreq':   ['Это заявка?', 'Первая развилка: заявка, спам или служебное письмо. Не заявка — в архив (на первом этапе отсев контролирует человек, чтобы не потерять целевые письма). Заявка — дальше по потоку.'],
+  'a-archive': ['Запись «не заявка»', 'Спам, рассылки, дополнительная информация по другим сделкам. Факт отсева фиксируется — для статистики и контроля качества.'],
+  'a-dup':     ['Клиент уже в базе?', 'Виджет «Дубли» проверяет номер, email и ИНН. Если клиент найден — новые карточки не создаются. Контроль, чтобы не терять крупных постоянных клиентов.'],
+  'b-branch':  ['Две ветки создания', 'Новый клиент — агент создаёт контакт, компанию, сделку и первичное ТЗ. Уже в базе — только сделка, привязанная к существующим карточкам.'],
+  'b-new-1':   ['1 · Карточка контакта', 'Первичная карточка контакта — из данных письма и вложений.'],
+  'b-new-2':   ['2 · Карточка компании', 'Первичная карточка компании — из данных письма и вложений.'],
+  'b-new-3':   ['3 · Сделка', 'Создаётся с полями КФ.* (дата получения запроса, источник и др.), обязательное поле «Сделка (ссылка)». Если к письму приложено ТЗ — автоматически формируется папка сделки на Яндекс.Диске, сотрудник проверяет полноту исходного ТЗ.'],
+  'b-new-4':   ['4 · Первичное стандартизированное ТЗ', 'Формируется сразу по шаблону, подобранному по объекту исследования: воздух, вода, почва, отходы, радиология, физфакторы.'],
+  'b-link':    ['Привязка к существующим карточкам', 'Новые контакт и компания не создаются — только сделка, привязанная к существующим карточкам контакта и компании.'],
+  'b-priority':['Приоритет заявки', 'Агент назначает приоритет сразу по данным письма — от него зависит скорость обработки. Для низко- и среднеприоритетных заявок в будущем возможна автопереписка агента с клиентом (вне MVP).'],
+  'c-gaps':    ['Определение недостающих данных', 'Агент сверяет имеющиеся данные с требованиями полей карточек и шаблона ТЗ: чего не хватает для полного заполнения. Чек-листы вопросов по каждому объекту исследования — из базы знаний лаборатории.'],
+  'c-comment': ['Комментарий со списком вопросов', 'В созданной сделке агент оставляет список вопросов, которые нужно задать клиенту, чтобы заполнить недостающие данные.'],
+  'c-manager': ['Менеджер связывается с клиентом', 'Менеджер продаж задаёт вопросы и дособирает информацию. Один цикл общения наполняет и карточки, и ТЗ — задачи 1 и 2 идут параллельно.'],
+  'c-channels':['Три канала возврата данных', 'Ответы клиента возвращаются агенту автоматически: транскрибация звонков, переписка, ручное заполнение полей менеджером.'],
+  'c-ch-call': ['Звонок → транскрибация', 'Запись звонка переводится в текст и передаётся агенту — он заполняет недостающие поля.'],
+  'c-ch-chat': ['Переписка', 'Мессенджер или почта — агент подхватывает ответы из переписки сам.'],
+  'c-ch-manual':['Ручное заполнение', 'Менеджер заполняет поля вручную — агент сразу считывает данные, сверяет с требуемым форматом и автоматически исправляет ошибки.'],
+  'c-full':    ['Все поля заполнены?', 'Проверка после каждой итерации: заполнены ли все требуемые поля карточек и стандартизированного ТЗ. Нет — новый цикл вопросов. Да — задачи 1 и 2 выполнены.'],
+  'd-done':    ['Задачи 1 и 2 выполнены', 'Все требуемые поля стандартизированного ТЗ заполнены после всех итераций. Финальное ТЗ готово — дальше расчёт КП.'],
+  'd-note-bot':['Опция вне MVP: автопереписка', 'Для низко- и среднеприоритетных заявок агент сможет сам связываться с клиентом по переписке, задавать вопросы и ожидать ответы. В MVP не закладываем.'],
+  'd-note-t3': ['Задача 3 — после MVP', 'Проверка протоколов исследований на соответствие формальным требованиям. Не входит в MVP (просьба Ирика) — вернёмся после согласования архитектуры задач 1–2.']
+};
+
+const EDGES = [
+  { from:'a-start',    to:'a-read' },
+  { from:'a-read',     to:'a-isreq' },
+  { from:'a-isreq',    to:'a-archive', type:'side', label:'нет', cls:'lbl-no' },
+  { from:'a-isreq',    to:'a-dup',     label:'да', cls:'lbl-yes', dx:-10, anchor:'end' },
+  { from:'a-dup',      to:'b-branch' },
+  { from:'b-branch',   to:'b-priority' },
+  { from:'b-priority', to:'c-gaps' },
+  { from:'c-gaps',     to:'c-comment' },
+  { from:'c-comment',  to:'c-manager' },
+  { from:'c-manager',  to:'c-channels' },
+  { from:'c-channels', to:'c-full' },
+  { from:'c-full',     to:'d-done', label:'да', cls:'lbl-yes', dx:16 },
+  { from:'c-full',     to:'c-gaps', type:'loop', label:'нет — новый цикл вопросов', cls:'lbl-no' },
+  { from:'d-done',     to:'d-note-bot', dash:true },
+  { from:'d-note-bot', to:'d-note-t3', dash:true }
+];
+
+const flow = document.getElementById('flow');
+const svg = document.getElementById('edges');
+const NS = 'http://www.w3.org/2000/svg';
+const DEFS = svg.querySelector('defs');
+
+function isMobile() { return window.matchMedia('(max-width:899px)').matches; }
+
+function pos(id) {
+  const el = document.querySelector('[data-id="' + id + '"]');
+  if (!el) return null;
+  const f = flow.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  return {
+    left: r.left - f.left, top: r.top - f.top,
+    right: r.right - f.left, bottom: r.bottom - f.top,
+    cx: (r.left + r.right) / 2 - f.left, cy: (r.top + r.bottom) / 2 - f.top
+  };
+}
+
+function mkPath(d, dash) {
+  const p = document.createElementNS(NS, 'path');
+  p.setAttribute('d', d);
+  if (dash) { p.setAttribute('class', 'dash'); p.setAttribute('marker-end', 'url(#arrow-dash)'); }
+  else p.setAttribute('marker-end', 'url(#arrow)');
+  svg.appendChild(p);
+  return p;
+}
+function mkText(x, y, str, cls, anchor, rotate) {
+  const t = document.createElementNS(NS, 'text');
+  t.setAttribute('x', x); t.setAttribute('y', y);
+  t.setAttribute('class', cls || '');
+  if (anchor) t.setAttribute('text-anchor', anchor);
+  if (rotate) t.setAttribute('transform', 'rotate(-90 ' + x + ' ' + y + ')');
+  t.textContent = str;
+  svg.appendChild(t);
+}
+
+function drawEdge(e) {
+  const A = pos(e.from), B = pos(e.to);
+  if (!A || !B) return;
+
+  if (e.type === 'loop') {
+    const off = isMobile() ? 26 : 40;
+    const x = Math.max(6, Math.min(A.left, B.left) - off);
+    mkPath('M ' + A.left + ' ' + A.cy + ' L ' + x + ' ' + A.cy + ' L ' + x + ' ' + B.cy + ' L ' + B.left + ' ' + B.cy);
+    mkText(x + 12, (A.cy + B.cy) / 2, e.label, e.cls, 'middle', true);
+    return;
+  }
+
+  if (e.type === 'side') {
+    if (B.left > A.right + 24) {
+      // рядом (desktop): горизонталь из правой вершины ромба
+      if (Math.abs(A.cy - B.cy) < 5) {
+        mkPath('M ' + A.right + ' ' + A.cy + ' L ' + B.left + ' ' + B.cy);
+      } else {
+        const xm = (A.right + B.left) / 2;
+        mkPath('M ' + A.right + ' ' + A.cy + ' L ' + xm + ' ' + A.cy + ' L ' + xm + ' ' + B.cy + ' L ' + B.left + ' ' + B.cy);
+      }
+      mkText((A.right + B.left) / 2, Math.min(A.cy, B.cy) - 8, e.label, e.cls, 'middle');
+    } else {
+      // стопкой (mobile): вправо, вниз, в правый край
+      const xOut = A.right + 16;
+      mkPath('M ' + A.right + ' ' + A.cy + ' L ' + xOut + ' ' + A.cy + ' L ' + xOut + ' ' + B.cy + ' L ' + B.right + ' ' + B.cy);
+      mkText(xOut, A.cy - 8, e.label, e.cls, 'middle');
+    }
+    return;
+  }
+
+  // вертикальный поток: низ источника → верх цели
+  const x1 = A.cx, y1 = A.bottom, x2 = B.cx, y2 = B.top;
+  if (Math.abs(x1 - x2) < 4) {
+    mkPath('M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2, e.dash);
+  } else {
+    const ym = (y1 + y2) / 2;
+    mkPath('M ' + x1 + ' ' + y1 + ' L ' + x1 + ' ' + ym + ' L ' + x2 + ' ' + ym + ' L ' + x2 + ' ' + y2, e.dash);
+  }
+  if (e.label) mkText(x1 + (e.dx || 9), (y1 + y2) / 2 + 4, e.label, e.cls, e.anchor || 'start');
+}
+
+function draw() {
+  while (svg.childNodes.length > 1) svg.removeChild(svg.lastChild);
+  svg.appendChild(DEFS);
+  svg.setAttribute('width', flow.offsetWidth);
+  svg.setAttribute('height', flow.offsetHeight);
+  svg.setAttribute('viewBox', '0 0 ' + flow.offsetWidth + ' ' + flow.offsetHeight);
+  for (const e of EDGES) drawEdge(e);
+}
+
+window.addEventListener('load', draw);
+if (window.ResizeObserver) new ResizeObserver(() => draw()).observe(flow);
+window.addEventListener('resize', draw);
+
+// ===== Details panel =====
+const details = document.getElementById('details');
+const detTitle = document.getElementById('det-title');
+const detBody = document.getElementById('det-body');
+let selected = null;
+if (!isMobile()) details.classList.add('open');
+
+function openDetails(id) {
+  const d = DETAILS[id];
+  if (!d) return;
+  if (selected) selected.classList.remove('selected');
+  selected = document.querySelector('[data-id="' + id + '"]');
+  if (selected) selected.classList.add('selected');
+  detTitle.textContent = d[0];
+  detBody.textContent = d[1];
+  detBody.classList.remove('hint');
+  details.classList.add('open');
+}
+
+document.querySelectorAll('[data-id]').forEach(el => {
+  el.addEventListener('click', ev => { ev.stopPropagation(); openDetails(el.dataset.id); });
+  el.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openDetails(el.dataset.id); }
+  });
+});
+document.getElementById('det-close').addEventListener('click', () => {
+  details.classList.remove('open');
+  if (selected) { selected.classList.remove('selected'); selected = null; }
+});
+flow.addEventListener('click', () => {
+  if (isMobile()) {
+    details.classList.remove('open');
+    if (selected) { selected.classList.remove('selected'); selected = null; }
+  }
+});
+</script>
+</body>
+</html>
