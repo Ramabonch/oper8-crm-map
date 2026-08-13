@@ -468,29 +468,85 @@ function isMobile() { return window.matchMedia('(max-width:899px)').matches; }
 const STYLE = {
   color: '#4b5563', size: 2.4, startPlug: 'disc', endPlug: 'arrow3',
   endPlugSize: 2.6, startPlugSize: 1.1, outlineColor: '#ffffff', outlineSize: 0.4,
-  startSocket: 'bottom', endSocket: 'top', path: 'grid'
+  startSocket: 'bottom', endSocket: 'top', path: 'straight'
 };
 
 function socketFor(edge, start) {
   if (edge.type === 'side') return start ? 'right' : 'left';
-  if (edge.type === 'loop') return start ? 'left' : 'left';
   return start ? 'bottom' : 'top';
 }
 
-function buildLoopMobile(fromEl, toEl, e) {
+function buildSideMobile(fromEl, toEl, e) {
   const fr = flow.getBoundingClientRect();
+  const fromR = fromEl.getBoundingClientRect();
+  const toR = toEl.getBoundingClientRect();
+  const fromCy = (fromR.top + fromR.bottom) / 2;
+  const toCy = (toR.top + toR.bottom) / 2;
+  const xOut = fromR.right + 24;
+  const pts = [
+    [fromR.right, fromCy],
+    [xOut, fromCy],
+    [xOut, toCy],
+    [toR.right, toCy]
+  ];
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'side-line');
+  svg.style.position = 'absolute';
+  svg.style.left = (minX - fr.left - 4) + 'px';
+  svg.style.top = (minY - fr.top - 4) + 'px';
+  svg.style.width = (maxX - minX + 8) + 'px';
+  svg.style.height = (maxY - minY + 8) + 'px';
+  svg.style.overflow = 'visible';
+  svg.style.pointerEvents = 'none';
+  svg.style.zIndex = '2';
+  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+  marker.setAttribute('id', 'side-arrow');
+  marker.setAttribute('markerWidth', '8'); marker.setAttribute('markerHeight', '8');
+  marker.setAttribute('refX', '6'); marker.setAttribute('refY', '4');
+  marker.setAttribute('orient', 'auto');
+  const mp = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  mp.setAttribute('d', 'M0,0 L7,4 L0,8 Z'); mp.setAttribute('fill', '#4b5563');
+  marker.appendChild(mp);
+  svg.appendChild(marker);
+  const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  poly.setAttribute('points', pts.map(p => (p[0] - minX + 4) + ',' + (p[1] - minY + 4)).join(' '));
+  poly.setAttribute('fill', 'none');
+  poly.setAttribute('stroke', '#4b5563');
+  poly.setAttribute('stroke-width', '2');
+  poly.setAttribute('stroke-linejoin', 'round');
+  poly.setAttribute('marker-end', 'url(#side-arrow)');
+  svg.appendChild(poly);
+  const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  lbl.setAttribute('x', (fromR.right - minX + 20));
+  lbl.setAttribute('y', (fromCy - minY - 8));
+  lbl.setAttribute('fill', '#b91c1c');
+  lbl.setAttribute('font-size', '11.5');
+  lbl.setAttribute('font-weight', '700');
+  lbl.textContent = e.label;
+  svg.appendChild(lbl);
+  flow.appendChild(svg);
+  return { line: svg };
+}
+
+function buildLoop(fromEl, toEl, e) {
+  const fr = flow.getBoundingClientRect();
+  const cycle = document.querySelector('.cycle');
+  const cycleRect = cycle ? cycle.getBoundingClientRect() : fr;
   const frRect = fromEl.getBoundingClientRect();
   const toRect = toEl.getBoundingClientRect();
-  const x = fr.right - 18;                 // линия у правого края flow
+  const x = cycleRect.right - 12;          // линия у правого края цикла
   const yOut = frRect.top + 10;            // выход у верха c-full
   const yIn = toRect.bottom - 10;          // вход у низа c-gaps
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('class', 'loop-line');
   svg.setAttribute('width', '26');
-  svg.setAttribute('height', String(Math.max(20, yIn - yOut)));
+  svg.setAttribute('height', String(Math.max(20, Math.abs(yIn - yOut)) + 10));
   svg.style.position = 'absolute';
   svg.style.left = (x - fr.left - 13) + 'px';
-  svg.style.top = (yOut - fr.top) + 'px';
+  svg.style.top = (Math.min(yOut, yIn) - fr.top - 6) + 'px';
   svg.style.overflow = 'visible';
   svg.style.pointerEvents = 'none';
   svg.style.zIndex = '2';
@@ -504,8 +560,8 @@ function buildLoopMobile(fromEl, toEl, e) {
   marker.appendChild(mp);
   svg.appendChild(marker);
   const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  line.setAttribute('x1', '13'); line.setAttribute('y1', '0');
-  line.setAttribute('x2', '13'); line.setAttribute('y2', String(yIn - yOut));
+  line.setAttribute('x1', '13'); line.setAttribute('y1', String(yOut - Math.min(yOut, yIn) + 6));
+  line.setAttribute('x2', '13'); line.setAttribute('y2', String(yIn - Math.min(yOut, yIn) + 6));
   line.setAttribute('stroke', '#4b5563'); line.setAttribute('stroke-width', '2');
   line.setAttribute('stroke-dasharray', '6 5');
   line.setAttribute('marker-end', 'url(#loop-arrow)');
@@ -525,9 +581,8 @@ function buildEdge(e) {
   const toEl = document.querySelector('[data-id="' + e.to + '"]');
   if (!fromEl || !toEl) return;
 
-  if (e.type === 'loop' && isMobile()) {
-    return buildLoopMobile(fromEl, toEl, e);
-  }
+  if (e.type === 'side' && isMobile()) return buildSideMobile(fromEl, toEl, e);
+  if (e.type === 'loop') return buildLoop(fromEl, toEl, e);
 
   const opts = Object.assign({}, STYLE, {
     startSocket: socketFor(e, true),
@@ -538,7 +593,6 @@ function buildEdge(e) {
     opts.color = '#c9a227';
     opts.endPlug = 'arrow2';
   }
-  if (e.loop) { opts.dash = { len: 6, gap: 5, animation: false }; opts.path = 'grid'; }
   const line = new LeaderLine(fromEl, toEl, opts);
   if (e.label) {
     line.setOptions({
@@ -554,8 +608,10 @@ function buildEdge(e) {
 const leaders = [];
 function draw() {
   leaders.forEach(l => {
-    try { if (l.line) l.line.remove(); } catch (err) {}
-    try { if (l.badge) l.badge.remove(); } catch (err) {}
+    try {
+      if (l.badge) { l.line.remove(); l.badge.remove(); }
+      else l.remove();
+    } catch (err) {}
   });
   leaders.length = 0;
   for (const e of EDGES) leaders.push(buildEdge(e));
