@@ -17,11 +17,11 @@
     --yes:#15803d; --no:#b91c1c;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
-  html { scroll-behavior:smooth; }
+  html { scroll-behavior:smooth; overflow-x:clip; }
   body {
     background:#ffffff;
     font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
-    color:var(--ink);
+    color:var(--ink); overflow-x:clip;
     -webkit-tap-highlight-color:transparent;
   }
   .page { max-width:1280px; margin:0 auto; padding:22px 14px 200px; }
@@ -47,6 +47,7 @@
   .sw-human { background:var(--human-bg); border-color:var(--human-bd); }
   .sw-crm   { background:var(--crm-bg);   border-color:var(--crm-bd); }
   .sw-note  { background:var(--note-bg);  border-color:var(--note-bd); border-style:dashed; }
+  .sw-learning { background:#f3e8ff; border-color:#9333ea; }
   .sw-dia   { background:var(--proc-bg); border-color:#6b7280; transform:rotate(45deg) scale(.62); border-radius:2px; }
 
   /* ===== Flow ===== */
@@ -166,6 +167,39 @@
   .ch-row .node b { font-size:13.5px; }
   .ch-row .node span { font-size:11.5px; }
 
+  /* ===== Cross-cutting learning / quality contour ===== */
+  .learning {
+    position:relative; border:1.5px solid #c084fc; border-radius:18px;
+    background:#fcfaff; padding:20px 46px 24px; margin:10px 0 6px;
+  }
+  .learning-cap {
+    position:relative; z-index:3; display:table; margin:0 auto 10px; padding:0 12px;
+    font-size:11.5px; font-weight:800; letter-spacing:1.15px; text-transform:uppercase;
+    color:#7e22ce; text-align:center; background:#fcfaff;
+  }
+  .learning-intro {
+    max-width:560px; margin:0 auto 14px; text-align:center; font-size:12.5px; line-height:1.5;
+    color:#5b21b6;
+  }
+  .decision-group {
+    position:relative; z-index:1; border:1.5px solid #d8b4fe; border-radius:15px;
+    background:#faf5ff; padding:14px 12px 12px; cursor:pointer;
+  }
+  .decision-group .group-cap { color:#7e22ce; }
+  .decision-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+  .decision-row .node { background:#f3e8ff; border-color:#a855f7; padding:11px 10px; }
+  .decision-row .node b { font-size:13px; }
+  .decision-row .node span { font-size:11.5px; }
+  .n-learning { background:#f3e8ff; border-color:#9333ea; }
+  .learning .node.diamond .dia.i { background:#f3e8ff; }
+  .learning .node.diamond.selected .dia.o { background:#9333ea; }
+  .learning-metric {
+    max-width:520px; margin:0 auto; padding:9px 13px; border-radius:10px;
+    border:1px dashed #c084fc; background:#fff; color:#6b21a8; text-align:center;
+    font-size:11.5px; line-height:1.45;
+  }
+  .loop-badge.feedback-badge { color:#6b21a8; border-color:#d8b4fe; }
+
   /* ===== MVP boundary ===== */
   .mvp-line { display:flex; align-items:center; gap:12px; margin:34px 0 6px; }
   .mvp-line::before, .mvp-line::after { content:''; flex:1; border-top:2px dashed #d1d5db; }
@@ -217,8 +251,11 @@
     .node { font-size:13px; }
     .node b { font-size:14px; }
     .cycle { padding:16px 34px 18px; }
+    .learning { padding:16px 18px 18px; }
     .branch-grid { grid-template-columns:1fr; gap:14px; }
     .ch-row { grid-template-columns:1fr; }
+    .decision-row { grid-template-columns:1fr; }
+    .learning .cell.s-archive { max-width:none; width:100%; justify-self:stretch; padding:0; }
     .cell.side-r { grid-column:1; justify-self:end; padding:0 12px 0 0; }
     .cell.s-archive { max-width:170px; }
     .node.diamond { max-width:320px; min-height:112px; }
@@ -238,7 +275,7 @@
   <header>
     <div class="kicker">Архитектура автоматизации</div>
     <h1>Блок-схема архитектуры</h1>
-    <div class="sub">Письмо клиента → карточки в CRM и первичное ТЗ → цикл досбора данных → готовое стандартизированное ТЗ. Нажмите на любой блок — подробности появятся внизу.</div>
+    <div class="sub">Письмо клиента → карточки в CRM и первичное ТЗ → цикл досбора данных → готовое стандартизированное ТЗ. Сквозной контур качества фиксирует решения агента, проверяет изменения и безопасно улучшает систему. Нажмите на любой блок — подробности появятся внизу.</div>
   </header>
 
   <div class="legend">
@@ -247,6 +284,7 @@
     <span><span class="sw sw-human"></span> Человек</span>
     <span><span class="sw sw-crm"></span> CRM / данные</span>
     <span><span class="sw sw-dia"></span> Решение</span>
+    <span><span class="sw sw-learning"></span> Контур самообучения</span>
     <span><span class="sw sw-note"></span> Вне MVP</span>
     <span>Линии: <b style="color:var(--yes)">да</b> / <b style="color:var(--no)">нет</b></span>
   </div>
@@ -423,9 +461,100 @@
       </div>
     </div>
 
+    <!-- ================= SECTION E: LEARNING CONTOUR ================= -->
+    <div class="row"><div class="strip" style="--sc:#9333ea"><i>E</i> Контур постоянного улучшения</div></div>
+
+    <div class="learning">
+      <div class="learning-cap">Сквозной контур · работает параллельно с этапами A–D</div>
+      <p class="learning-intro">Система не меняет модель «сама по себе»: она накапливает подтверждённые кейсы, а команда безопасно улучшает версии промптов и базы знаний через обязательные тесты.</p>
+
+      <div class="row">
+        <div class="cell main">
+          <div class="decision-group" data-id="e-decision-blocks" tabindex="0">
+            <div class="group-cap">Decision blocks · все недетерминированные решения агента</div>
+            <div class="decision-row">
+              <div class="node n-learning" data-id="e-d1" tabindex="0"><b>D1 · Приём и CRM</b><span>заявка · дубль · ОИ · приоритет</span></div>
+              <div class="node n-learning" data-id="e-d2" tabindex="0"><b>D2 · Стандартизация ТЗ</b><span>поля · полнота · вопросы клиенту</span></div>
+              <div class="node n-learning n-muted" data-id="e-d3" tabindex="0"><b>D3 · После MVP</b><span>формальная проверка протоколов</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="cell main">
+          <div class="node n-crm" data-id="e-log" tabindex="0">
+            <b>Единый Decision Log</b>
+            <span>решение · исходные данные · результат · версия сборки, промпта и базы знаний</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="cell main">
+          <div class="node n-human" data-id="e-confirm" tabindex="0">
+            <b>Человек подтверждает или исправляет решение</b>
+            <span>квалификатор · менеджер · расчётчик — в привычной рабочей точке</span>
+          </div>
+        </div>
+      </div>
+      <div class="learning-metric">Метрики качества сохраняются по каждому модулю: доля подтверждений и исправлений, типы ошибок, точность, откаты версий.</div>
+
+      <div class="row">
+        <div class="cell main">
+          <div class="node n-learning" data-id="e-case" tabindex="0">
+            <b>Подтверждённое решение становится кейсом</b>
+            <span>проверенный пример → контролируемое пополнение базы знаний и набора тестов</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="cell main">
+          <div class="node n-human" data-id="e-change" tabindex="0">
+            <b>Команда готовит новую версию</b>
+            <span>промпт · база знаний · примеры · при необходимости модель — версии сохраняются</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="cell main">
+          <div class="node n-robot" data-id="e-tests" tabindex="0">
+            <b>Песочница автоматически прогоняет тесты</b>
+            <span>заранее записанные входные данные и правильные ответы · без влияния на рабочий контур</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="cell main">
+          <div class="node diamond" data-id="e-pass" tabindex="0">
+            <div class="dia o"></div><div class="dia i"></div>
+            <b>Тесты пройдены?</b>
+          </div>
+        </div>
+        <div class="cell side-r s-archive">
+          <div class="node n-proc" data-id="e-rollback" tabindex="0">
+            <b>Откат к рабочей версии</b>
+            <span>прежние промпт и база знаний сохраняются</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="cell main">
+          <div class="node n-peach" data-id="e-release" tabindex="0">
+            <b>↺ Новая рабочая версия применяется во всех Decision blocks</b>
+            <span>качество растёт, а любая версия остаётся доступна для быстрого отката</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <footer>Блок-схема архитектуры автоматизации · 13.08.2026</footer>
+  <footer>Блок-схема архитектуры автоматизации · 14.08.2026</footer>
 </div>
 
 <div class="details" id="details" aria-live="polite">
@@ -460,7 +589,19 @@ const DETAILS = {
   'c-full':    ['Все поля заполнены?', 'Проверка после каждой итерации: заполнены ли все требуемые поля карточек и стандартизированного ТЗ. Нет — новый цикл вопросов. Да — задачи 1 и 2 выполнены.'],
   'd-done':    ['Задачи 1 и 2 выполнены', 'Все требуемые поля стандартизированного ТЗ заполнены после всех итераций. Финальное ТЗ готово — дальше расчёт КП.'],
   'd-note-bot':['Опция вне MVP: автопереписка', 'Для низко- и среднеприоритетных заявок агент сможет сам связываться с клиентом по переписке, задавать вопросы и ожидать ответы. В MVP не закладываем.'],
-  'd-note-t3': ['Задача 3 — после MVP', 'Проверка протоколов исследований на соответствие формальным требованиям. Не входит в MVP (просьба Ирика) — вернёмся после согласования архитектуры задач 1–2.']
+  'd-note-t3': ['Задача 3 — после MVP', 'Проверка протоколов исследований на соответствие формальным требованиям. Не входит в MVP (просьба Ирика) — вернёмся после согласования архитектуры задач 1–2.'],
+  'e-decision-blocks': ['Decision blocks', 'Отдельные блоки фиксируют все решения, где результат зависит не только от жёсткого алгоритма: приём заявки и CRM, стандартизация ТЗ, а после MVP — формальная проверка протоколов. Каждый блок передаёт записи в единый Decision Log.'],
+  'e-d1': ['D1 · Приём и CRM', 'Регистрируются решения агента по письму: заявка это или нет, совпадает ли клиент с существующей карточкой, какой объект исследования определён и какой приоритет назначен.'],
+  'e-d2': ['D2 · Стандартизация ТЗ', 'Регистрируются решения о том, какие значения извлечены из письма и вложений, достаточно ли данных и какие вопросы нужно задать клиенту.'],
+  'e-d3': ['D3 · После MVP', 'Когда команда вернётся к проверке протоколов, в тот же контур попадут решения о формальной корректности и найденных несоответствиях. Состав проверок уточняется отдельно.'],
+  'e-log': ['Единый Decision Log', 'Для каждого недетерминированного решения сохраняются исходные данные, результат и версии сборки, промпта и базы знаний. Поэтому результат можно проверить, сравнить между версиями и воспроизвести.'],
+  'e-confirm': ['Подтверждение человеком', 'Квалификатор, менеджер или расчётчик не становятся отдельными «учителями»: они подтверждают либо исправляют решение в своей обычной точке работы. Это создаёт надёжный сигнал качества без дополнительного ручного процесса.'],
+  'e-case': ['Подтверждённый кейс', 'Только решение, подтверждённое человеком, становится контролируемым кейсом: примером для базы знаний и будущего набора тестов. Система не обучается на непроверенных догадках.'],
+  'e-change': ['Новая версия под контролем команды', 'Команда периодически изучает журнал и метрики, затем меняет промпт, базу знаний, примеры или при необходимости модель. Каждая конфигурация получает версию; к любой рабочей версии можно вернуться.'],
+  'e-tests': ['Автотесты в песочнице', 'После изменения автоматически запускается заранее записанный набор входных данных с правильными ответами. Тесты выполняются отдельно от рабочего потока и не затрагивают заявки клиентов.'],
+  'e-pass': ['Тесты пройдены?', 'Если новая версия корректно проходит набор проверочных кейсов — она становится рабочей. Если нет — система остаётся на прежней версии, а команда дорабатывает изменение.'],
+  'e-rollback': ['Откат к рабочей версии', 'Провал тестов не попадает в рабочий контур: сразу сохраняется прежняя совместимая версия промпта и базы знаний. Откат не требует ручного восстановления данных.'],
+  'e-release': ['Новая рабочая версия', 'Прошедшая тесты версия применяется во всех Decision blocks. Так каждый подтверждённый кейс может повышать качество следующих решений, а стабильность защищена тестами, версионированием и быстрым откатом.']
 };
 
 const EDGES = [
@@ -478,7 +619,17 @@ const EDGES = [
   { from:'c-full',     to:'d-done', label:'да', cls:'lbl-yes', dx:16 },
   { from:'c-full',     to:'c-gaps', type:'loop', label:'нет — новый цикл', cls:'lbl-no' },
   { from:'d-done',     to:'d-note-bot', dash:true },
-  { from:'d-note-bot', to:'d-note-t3', dash:true }
+  { from:'d-note-bot', to:'d-note-t3', dash:true },
+  // Cross-cutting self-learning contour
+  { from:'e-decision-blocks', to:'e-log' },
+  { from:'e-log',             to:'e-confirm' },
+  { from:'e-confirm',         to:'e-case' },
+  { from:'e-case',            to:'e-change' },
+  { from:'e-change',          to:'e-tests' },
+  { from:'e-tests',           to:'e-pass' },
+  { from:'e-pass',            to:'e-rollback', type:'side', label:'нет', cls:'lbl-no' },
+  { from:'e-pass',            to:'e-release', label:'да', cls:'lbl-yes', dx:16 },
+  { from:'e-release',         to:'e-decision-blocks', type:'feedback', label:'обновлённая версия → в работу' }
 ];
 
 const flow = document.getElementById('flow');
@@ -620,6 +771,65 @@ function buildLoop(fromEl, toEl, e) {
   return { remove() { svg.remove(); badge.remove(); } };
 }
 
+function buildFeedback(fromEl, toEl, e) {
+  /* The learning contour is a real return loop on desktop. On narrow screens
+     its meaning remains explicit in the final node rather than drawing a line
+     through the content column. */
+  if (isMobile()) return;
+  const fr = flow.getBoundingClientRect();
+  const learningRect = document.querySelector('.learning').getBoundingClientRect();
+  const fromR = fromEl.getBoundingClientRect();
+  const toR = toEl.getBoundingClientRect();
+  const startY = (fromR.top + fromR.bottom) / 2;
+  const endY = (toR.top + toR.bottom) / 2;
+  const laneX = learningRect.right - 14;
+  const pts = [
+    [fromR.right, startY],
+    [laneX, startY],
+    [laneX, endY],
+    [toR.right, endY]
+  ];
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'feedback-line');
+  svg.style.position = 'absolute';
+  svg.style.left = (minX - fr.left - 4) + 'px';
+  svg.style.top = (minY - fr.top - 4) + 'px';
+  svg.style.width = (maxX - minX + 8) + 'px';
+  svg.style.height = (maxY - minY + 8) + 'px';
+  svg.style.overflow = 'visible';
+  svg.style.pointerEvents = 'none';
+  svg.style.zIndex = '2';
+  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+  marker.setAttribute('id', 'feedback-arrow');
+  marker.setAttribute('markerWidth', '8'); marker.setAttribute('markerHeight', '8');
+  marker.setAttribute('refX', '6'); marker.setAttribute('refY', '4');
+  marker.setAttribute('orient', 'auto');
+  const mp = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  mp.setAttribute('d', 'M0,0 L7,4 L0,8 Z'); mp.setAttribute('fill', '#7e22ce');
+  marker.appendChild(mp);
+  svg.appendChild(marker);
+  const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  poly.setAttribute('points', pts.map(p => (p[0] - minX + 4) + ',' + (p[1] - minY + 4)).join(' '));
+  poly.setAttribute('fill', 'none');
+  poly.setAttribute('stroke', '#9333ea');
+  poly.setAttribute('stroke-width', '2');
+  poly.setAttribute('stroke-dasharray', '6 5');
+  poly.setAttribute('stroke-linejoin', 'round');
+  poly.setAttribute('marker-end', 'url(#feedback-arrow)');
+  svg.appendChild(poly);
+  flow.appendChild(svg);
+  const badge = document.createElement('div');
+  badge.className = 'loop-badge feedback-badge';
+  badge.textContent = e.label;
+  badge.style.left = (laneX - fr.left - 24) + 'px';
+  badge.style.top = ((startY + endY) / 2 - fr.top - 70) + 'px';
+  flow.appendChild(badge);
+  return { remove() { svg.remove(); badge.remove(); } };
+}
+
 function buildEdge(e) {
   const fromEl = document.querySelector('[data-id="' + e.from + '"]');
   const toEl = document.querySelector('[data-id="' + e.to + '"]');
@@ -627,6 +837,7 @@ function buildEdge(e) {
 
   if (e.type === 'side' && isMobile()) return buildSideMobile(fromEl, toEl, e);
   if (e.type === 'loop') return buildLoop(fromEl, toEl, e);
+  if (e.type === 'feedback') return buildFeedback(fromEl, toEl, e);
 
   const opts = Object.assign({}, STYLE, {
     startSocket: socketFor(e, true),
@@ -670,7 +881,7 @@ function clearConnectors() {
   });
   leaders.length = 0;
   // Defensive cleanup for an interrupted/resized prior render.
-  document.querySelectorAll('svg.leader-line, svg.side-line, svg.loop-line, .loop-badge')
+  document.querySelectorAll('svg.leader-line, svg.side-line, svg.loop-line, svg.feedback-line, .loop-badge')
     .forEach(el => el.remove());
 }
 
@@ -701,7 +912,6 @@ const details = document.getElementById('details');
 const detTitle = document.getElementById('det-title');
 const detBody = document.getElementById('det-body');
 let selected = null;
-if (!isMobile()) details.classList.add('open');
 
 function openDetails(id) {
   const d = DETAILS[id];
