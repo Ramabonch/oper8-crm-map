@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Пульт разбора писем</title>
+<style>
+  :root{
+    --холст:#F0F3F7; --экран:#FFFFFF; --экран-2:#F7F9FC;
+    --сайдбар:#6C7A89; --графит:#2F3B4C; --рамка:#E5E9F0;
+    --текст:#2F3B4C; --вторичный:#7A8794;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%;}
+  body{
+    background:var(--холст); color:var(--текст);
+    font-family:'Inter','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+    font-size:14px; line-height:1.5; overflow:hidden;
+  }
+
+  /* ——— Экран входа ——— */
+  #вход{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:var(--холст); z-index:50;
+  }
+  .вход-карточка{
+    background:var(--экран); border:1px solid var(--рамка); border-radius:8px;
+    width:min(380px, calc(100% - 32px)); padding:28px;
+  }
+  .вход-карточка h2{margin:0 0 4px; font-size:18px; font-weight:600;}
+  .вход-карточка .под{color:var(--вторичный); font-size:12.5px; margin-bottom:18px;}
+  .поле-ввода{
+    width:100%; border:1px solid var(--рамка); border-radius:5px; padding:9px 10px;
+    font-size:14px; margin-bottom:10px; background:var(--экран-2); color:var(--текст);
+  }
+  .поле-ввода:focus{outline:2px solid var(--графит); outline-offset:1px;}
+
+  /* ——— Общий каркас ——— */
+  #приложение{display:none; height:100%; flex-direction:column;}
+  .шапка{
+    display:flex; align-items:center; gap:12px; padding:10px 18px;
+    background:var(--экран); border-bottom:1px solid var(--рамка); flex:0 0 auto;
+  }
+  .логотип{font-size:15px; font-weight:600; letter-spacing:.04em; cursor:pointer; user-select:none;}
+  .поиск{
+    flex:1; max-width:520px; background:var(--экран-2); border:1px solid var(--рамка);
+    border-radius:5px; padding:7px 10px; font-size:13px; color:var(--вторичный);
+  }
+  .точка-состояния{width:9px; height:9px; border-radius:50%; background:#5B9279; flex:0 0 auto;}
+  .аватар{
+    width:30px; height:30px; border-radius:50%; background:var(--графит); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:12px; flex:0 0 auto;
+    cursor:pointer;
+  }
+  .кнопка-меню{display:none; background:none; border:1px solid var(--рамка); border-radius:5px; padding:6px 10px; font-size:13px; cursor:pointer; color:var(--текст);}
+  .кнопка-меню:hover{background:var(--экран-2);}
+  .кнопка-меню.активна{background:var(--графит); color:#fff; border-color:var(--графит);}
+  .кнопка-меню:active{transform:translateY(1px);}
+  .скрим{display:none; position:absolute; inset:0; background:rgba(47,59,76,.35); z-index:35;}
+  .скрим.открыт{display:block;}
+
+  .корпус{display:flex; flex:1 1 auto; min-height:0;}
+  .разделы{
+    width:232px; flex:0 0 auto; background:var(--сайдбар); color:#EAEFF4;
+    padding:14px 10px; overflow-y:auto;
+  }
+  .разделы .группа{
+    margin:14px 8px 4px; font-size:10.5px; letter-spacing:.09em;
+    text-transform:uppercase; color:#C7D2DC;
+  }
+  .разделы .группа:first-child{margin-top:2px;}
+  .пункт{
+    display:block; width:100%; text-align:left; background:none; border:none;
+    color:#EAEFF4; font:inherit; font-size:13.5px; padding:8px 10px; border-radius:5px;
+    cursor:pointer; margin:1px 0;
+  }
+  .пункт:hover{background:rgba(255,255,255,.12);}
+  .пункт:active{background:var(--графит); transform:translateY(1px);}
+  .пункт.активен{background:var(--графит); color:#fff;}
+
+  .полотно{flex:1 1 auto; min-width:0; overflow-y:auto; padding:22px 26px 40px;}
+  .экран{display:none; max-width:1240px;}
+  .экран.виден{display:block;}
+  .экран h1{font-size:21px; font-weight:600; margin:0 0 2px;}
+  .экран .назначение{color:var(--вторичный); font-size:13px; margin:0 0 18px;}
+
+  .кнопка{
+    display:inline-block; background:var(--графит); color:#fff; border:none;
+    border-radius:5px; padding:8px 14px; font:inherit; font-size:12.5px;
+    letter-spacing:.04em; text-transform:uppercase; cursor:pointer;
+  }
+  .кнопка:hover{background:#3E4C60;}
+  .кнопка:active{background:#24303E; transform:translateY(1px);}
+  .кнопка.светлая{background:#fff; color:var(--графит); border:1px solid var(--рамка);}
+  .кнопка.светлая:hover{background:var(--экран-2);}
+  .кнопка.светлая:active{background:var(--рамка); transform:translateY(1px);}
+  .кнопка:disabled{opacity:.45; cursor:default; transform:none;}
+
+  .блок{
+    background:var(--экран); border:1px solid var(--рамка); border-radius:6px;
+    padding:14px 16px; margin-bottom:12px;
+  }
+  .блок > .подпись{
+    font-size:10.5px; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--вторичный); margin-bottom:8px;
+  }
+  .строка{
+    display:flex; justify-content:space-between; gap:10px; padding:6px 0;
+    border-bottom:1px dashed var(--рамка); font-size:13.5px; flex-wrap:wrap;
+  }
+  .строка:last-child{border-bottom:none;}
+  .вторичный{color:var(--вторичный);}
+  .метка{
+    display:inline-block; background:var(--экран-2); border:1px solid var(--рамка);
+    border-radius:4px; padding:1px 8px; font-size:11px; white-space:nowrap;
+  }
+  .метка.горит{background:#FDF3E7; border-color:#E8D5B5;}
+  .метка.опасно{background:#FBEDEC; border-color:#E4C7C4;}
+  button.метка{cursor:pointer; font-family:inherit;}
+  .панель-фильтров{display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;}
+  .тост{background:var(--фон); border:1px solid var(--рамка); border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px;}
+
+  .сетка-3{display:grid; grid-template-columns:repeat(3, calc((100% - 24px)/3)); gap:12px; margin-bottom:12px;}
+  .счётчик{font-size:26px; font-weight:600;}
+  .счётчик-кнопка{cursor:pointer;}
+  .счётчик-кнопка:hover .блок{border-color:var(--графит);}
+
+  .две-колонки{display:flex; gap:12px; align-items:stretch;}
+  .две-колонки > *{min-width:0;}
+  .центр{flex:1 1 auto;}
+  .бок{width:34%; flex:0 0 auto;}
+
+  .вкладки{display:flex; gap:18px; border-bottom:1px solid var(--рамка); margin-bottom:14px; flex-wrap:wrap;}
+  .вкладка{
+    background:none; border:none; font:inherit; font-size:13.5px; color:var(--вторичный);
+    padding:6px 0 8px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;
+  }
+  .вкладка:hover{color:var(--текст);}
+  .вкладка:active{transform:translateY(1px);}
+  .вкладка.активна{color:var(--графит); border-bottom-color:var(--графит); font-weight:600;}
+  .вкладка-содержимое{display:none;}
+  .вкладка-содержимое.виден{display:block;}
+
+  .случай-пусто{padding:26px; text-align:center; color:var(--вторичный); font-size:15px;}
+  .строка-случая{
+    background:var(--экран); border:1px solid var(--рамка); border-radius:6px;
+    padding:14px 16px; margin-bottom:12px;
+  }
+  .ввод-строка{display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap:wrap;}
+  .ввод-строка input{
+    flex:1; min-width:180px; border:1px solid var(--рамка); border-radius:5px;
+    padding:8px 10px; font:inherit; font-size:14px; background:var(--экран-2);
+  }
+  .подсказка{font-size:12px; color:var(--вторичный); margin-top:8px;}
+
+  /* ——— Телефон: разделы выезжают ——— */
+  @media (max-width:760px){
+    .кнопка-меню{display:inline-block;}
+    .корпус{position:relative;}
+    .разделы{
+      position:absolute; top:0; bottom:0; left:0; z-index:40;
+      transform:translateX(-105%); transition:transform .18s ease;
+      box-shadow:2px 0 14px rgba(47,59,76,.18);
+    }
+    .разделы.открыт{transform:translateX(0);}
+    .сетка-3{grid-template-columns:100%;}
+    .две-колонки{flex-direction:column;}
+    .бок{width:100%;}
+    .полотно{padding:16px 14px 32px;}
+    .поиск{max-width:none;}
+  }
+</style>
+</head>
+<body>
+
+<div id="вход">
+  <div class="вход-карточка">
+    <h2>Вход в пульт</h2>
+    <div class="под">Разбор входящих писем. Данные на странице — условные.</div>
+    <input class="поле-ввода" type="text" value="Ю. Ковалёва" aria-label="Электронная почта">
+    <input class="поле-ввода" type="password" value="········" aria-label="Пароль">
+    <button class="кнопка" id="войти" style="width:100%;">Войти</button>
+  </div>
+</div>
+
+<div id="приложение">
+  <div class="шапка">
+    <button class="кнопка-меню" id="кнопка-меню">Меню</button>
+    <div class="логотип" id="логотип">ПУЛЬТ</div>
+    <div class="поиск">Поиск: письмо, ИНН, компания, сделка, период…</div>
+    <div class="точка-состояния" title="Каналы в порядке"></div>
+    <div class="аватар" title="Ю. Ковалёва">ЮК</div>
+  </div>
+
+  <div class="корпус">
+    <div class="скрим" id="скрим"></div>
+    <nav class="разделы" id="разделы">
+      <div class="группа">Рабочее</div>
+      <button class="пункт" data-экран="пульс">Пульс системы</button>
+      <button class="пункт" data-экран="очередь">Что нужно от человека</button>
+      <button class="пункт" data-экран="письма">Письма и разбор</button>
+      <div class="группа">Ещё</div>
+      <button class="пункт" data-экран="правила">Правила и версии</button>
+      <button class="пункт" data-экран="журнал">Журнал решений</button>
+      <button class="пункт" data-экран="прогон">Прогон без записи</button>
+      <button class="пункт" data-экран="каналы">Каналы и расход</button>
+      <button class="пункт" data-экран="доступ">Доступ</button>
+    </nav>
+
+    <main class="полотно">
+
+      <!-- Пульс -->
+      <section class="экран" id="экран-пульс">
+        <h1>Пульс системы</h1>
+        <p class="назначение">Жива ли система, есть ли просрочка, всё ли в порядке с каналами.</p>
+        <div class="тост" style="margin-bottom:12px;"><span><b>Ключ amoCRM истекает 30.09</b> — лучше продлить заранее</span><button class="кнопка светлая" id="продлить-баннер">Продлить</button></div>
+        <div class="сетка-3">
+          <div class="счётчик-кнопка" data-кнопка="очередь"><div class="блок"><div class="подпись">Пришло писем</div><div class="счётчик">142</div></div></div>
+          <div class="счётчик-кнопка" data-кнопка="письма"><div class="блок"><div class="подпись">Разобрано автоматически</div><div class="счётчик">118</div></div></div>
+          <div class="счётчик-кнопка" data-кнопка="очередь"><div class="блок"><div class="подпись">Просрочено</div><div class="счётчик">3</div></div></div>
+        </div>
+        <div class="две-колонки">
+          <div class="центр">
+            <div class="блок">
+              <div class="подпись">Качество и скорость</div>
+              <div class="строка счётчик-кнопка" data-кнопка="письма"><span>Без вмешательства человека</span><span>83%</span></div>
+              <div class="строка счётчик-кнопка" data-кнопка="письма"><span>Среднее время до готовой карточки</span><span>4 мин</span></div>
+              <div class="строка счётчик-кнопка" data-кнопка="очередь"><span>Ждут человека дольше срока</span><span>5</span></div>
+              <div class="строка счётчик-кнопка" data-кнопка="прогон"><span>Качество по приёмке (точно / в допуске)</span><span>92% / 4%</span></div>
+            </div>
+            <div class="блок">
+              <div class="подпись">Последние события</div>
+              <div class="строка"><span>Разобрано письмо: «Заявка с сайта: отходы»</span><span class="вторичный">11:05</span></div>
+              <div class="строка"><span>Остановилась: не хватает ИНН</span><span class="вторичный">10:52</span></div>
+            </div>
+          </div>
+          <div class="бок">
+            <div class="блок">
+              <div class="подпись">Каналы</div>
+              <div class="строка"><span>Почта</span><span>в порядке</span></div>
+              <div class="строка"><span>Модель</span><span>в порядке</span></div>
+              <div class="строка"><span>amoCRM</span><button class="кнопка светлая" id="продлить-канал">Продлить · до 30.09</button></div>
+              <div class="строка"><span>Диск</span><span>в порядке</span></div>
+            </div>
+            <div class="блок">
+              <div class="подпись">Расход</div>
+              <div class="строка"><span class="вторичный">Раздел в разработке</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Очередь -->
+      <section class="экран" id="экран-очередь">
+        <h1>Что нужно от человека</h1>
+        <p class="назначение">Где остановилась система и чего именно не хватает. Просроченное и старое — сверху.</p>
+        <div class="панель-фильтров" id="фильтр-очереди">
+          <button class="метка" id="фильтр-просроченные">только просроченные</button>
+          <button class="метка горит" id="фильтр-все">все случаи</button>
+          <span class="вторичный" id="закрыто-сегодня" style="margin-left:auto;">Закрыто сегодня: 0</span>
+        </div>
+        <div id="тост-очереди" class="тост" style="display:none;"></div>
+        <div id="очередь-содержимое"></div>
+      </section>
+
+      <!-- Письма -->
+      <section class="экран" id="экран-письма">
+        <div id="письма-список">
+          <h1>Письма и разбор</h1>
+          <p class="назначение">Нажмите на письмо — откроется всё, что с ним сделала система.</p>
+          <div class="блок">
+            <div class="подпись">Письма — нажмите любое</div>
+            <div id="список-писем"></div>
+          </div>
+        </div>
+        <div id="письма-карточка" style="display:none;"></div>
+      </section>
+
+      <!-- Правила -->
+      <section class="экран" id="экран-правила">
+        <h1>Правила и версии</h1>
+        <p class="назначение">Каждая правка — новая версия, откат в один шаг.</p>
+        <div class="вкладки">
+          <button class="вкладка активна" data-вкладка="правила-обработки">Правила обработки</button>
+          <button class="вкладка" data-вкладка="технастройки">Технические настройки</button>
+          <button class="вкладка" data-вкладка="знания">Знания и справочники</button>
+        </div>
+        <div class="вкладка-содержимое виден" id="вкладка-правила-обработки">
+          <div class="блок">
+            <div class="подпись">Версии</div>
+            <div class="строка"><span><b>Версия 7 — работает сейчас</b><br><span class="вторичный">правила классов писем · И. Габитов · 22.09</span></span><button class="кнопка светлая">Сравнить</button></div>
+            <div class="строка"><span>Версия 6<br><span class="вторичный">правила приоритета · И. Габитов · 18.09</span></span><button class="кнопка светлая" id="откатить-версию">Откатить</button></div>
+            <div id="откат-подтверждение" style="display:none; margin-top:10px; padding:10px 12px; background:var(--фон); border:1px solid var(--рамка); border-radius:8px;">
+              <div><b>Откатить на версию 6?</b> Текущая сохранится как версия 8 — ничего не потеряется.</div>
+              <div style="margin-top:8px;"><button class="кнопка" id="откат-да">Откатить</button> <button class="кнопка светлая" id="откат-нет">Оставить как есть</button></div>
+            </div>
+            <div id="откат-итог" class="вторичный" style="display:none; margin-top:8px;"></div>
+          </div>
+          <div class="блок">
+            <div class="подпись">Перед сохранением правки промпта</div>
+            <div class="строка"><span>«Промпты правит Ирик. Ответственность за правку — на вас.»</span></div>
+            <button class="кнопка" style="margin-top:8px;">Подтверждаю и сохраняю</button>
+          </div>
+        </div>
+        <div class="вкладка-содержимое" id="вкладка-технастройки">
+          <div class="блок">
+            <div class="подпись">Технические настройки</div>
+            <div class="строка"><span>Срок реакции на владение сделкой</span><span class="метка горит">ждёт подтверждения</span></div>
+            <div class="строка"><span>Политика закрытия сделки</span><span class="метка горит">ждёт подтверждения</span></div>
+            <div class="строка"><span>Проверка почты</span><span>каждые 5 минут</span></div>
+          </div>
+        </div>
+        <div class="вкладка-содержимое" id="вкладка-знания">
+          <div class="блок">
+            <div class="подпись">Справочники</div>
+            <div class="строка"><span>Типы клиентов · обновлён 20.08</span><button class="кнопка светлая">Открыть</button></div>
+            <div class="строка"><span>Регионы · обновлён 15.09</span><button class="кнопка светлая">Открыть</button></div>
+            <div class="строка"><span>Объекты исследования · обновлён 12.09</span><button class="кнопка светлая">Открыть</button></div>
+            <div class="строка"><span>Соответствия страниц сайта</span><span><span class="метка горит">устарел</span> <button class="кнопка светлая" id="обновить-справочник">Обновить</button></span></div>
+          </div>
+          <div class="блок">
+            <div class="подпись">Примеры из журнала</div>
+            <div class="строка"><span>Подтверждено человеком: 24</span><button class="кнопка светлая" id="открыть-примеры">Открыть список</button></div>
+            <div id="список-примеров" style="display:none; margin-top:8px;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Журнал -->
+      <section class="экран" id="экран-журнал">
+        <h1>Журнал решений</h1>
+        <p class="назначение">Что и почему решала система. Подтверждённые случаи становятся проверками.</p>
+        <div class="блок">
+          <div class="подпись">Решения</div>
+          <div class="строка"><span><b>Класс «новая заявка» — верно</b><br><span class="вторичный">14:58 · шаг 1 · правила, версия 7</span></span><button class="кнопка светлая">Подтвердить</button></div>
+          <div class="строка"><span><b>Приоритет «высокий» — верно</b><br><span class="вторичный">14:58 · шаг 2 · вложения: план-график</span></span><button class="кнопка светлая">Подтвердить</button></div>
+          <div class="строка"><span><b>Надёжность: повтор поставлен в очередь</b><br><span class="вторичный">13:02 · запись в CRM не прошла с первого раза</span></span></div>
+        </div>
+      </section>
+
+      <!-- Прогон -->
+      <section class="экран" id="экран-прогон">
+        <h1>Прогон без записи</h1>
+        <p class="назначение">«Вход → эталон → результат» на наборе писем. В рабочие системы ничего не пишется.</p>
+        <div class="блок">
+          <div class="подпись">Действия</div>
+          <button class="кнопка">Запустить прогон</button>
+          <button class="кнопка светлая">Собрать отчёт</button>
+          <button class="кнопка светлая">Расписание: каждую пятницу</button>
+        </div>
+        <div class="две-колонки">
+          <div class="центр">
+            <div class="блок">
+              <div class="подпись">Письмо → эталон → результат</div>
+              <div class="строка"><span>Объём: 220 → <b>220</b></span><span class="метка">совпало точно</span></div>
+              <div class="строка"><span>Время запроса: 14:58 → <b>15:00</b></span><span class="метка">в допуске, ±2 мин</span></div>
+              <div class="строка"><span>Объекты: воздух, вода → <b>воздух, вода</b></span><span class="метка горит">не совпало: нет «почва»</span></div>
+              <div class="строка"><span>Что делать с расхождением</span><span><button class="кнопка светлая" id="прогон-открыть-письмо">Открыть письмо</button> <button class="кнопка светлая" id="прогон-в-примеры">Добавить в примеры</button></span></div>
+            </div>
+          </div>
+          <div class="бок">
+            <div class="блок">
+              <div class="подпись">Честный вердикт</div>
+              <div class="строка"><span>Ошибка системы</span><span>1</span></div>
+              <div class="строка"><span>Данных нет в письме</span><span>2</span></div>
+              <div class="строка"><span>Появилось позже</span><span>1</span></div>
+              <div class="строка"><span>В допуске</span><span>3</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Каналы -->
+      <section class="экран" id="экран-каналы">
+        <h1>Каналы и расход</h1>
+        <p class="назначение">Знать о сбое заранее.</p>
+        <div class="две-колонки">
+          <div class="центр">
+            <div class="блок">
+              <div class="подпись">Состояние</div>
+              <div class="строка"><span>Почта: доступ, проверка каждые 5 минут</span><span class="метка">в порядке</span></div>
+              <div class="строка"><span>Модель и посредник</span><span class="метка">в порядке</span></div>
+              <div class="строка"><span>amoCRM: ключ действителен до 30.09</span><button class="кнопка светлая" id="продлить-каналы-экран">Продлить</button></div>
+              <div class="строка"><span>Диск: место есть</span><span class="метка">в порядке</span></div>
+              <div class="строка"><span>База и настройки доступа</span><span class="метка">в порядке</span></div>
+            </div>
+          </div>
+          <div class="бок">
+            <div class="блок">
+              <div class="подпись">События надёжности</div>
+              <div class="строка"><span>Запись во внешнюю систему заблокирована</span><span class="вторичный">вчера</span></div>
+              <div class="строка"><span>Повтор поставлен</span><span class="вторичный">вчера</span></div>
+              <div class="строка"><span>Повторы исчерпаны</span><span class="вторичный">—</span></div>
+            </div>
+            <div class="блок">
+              <div class="подпись">Расход</div>
+              <div class="строка"><span class="вторичный">Раздел в разработке. Место сохранено.</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Доступ -->
+      <section class="экран" id="экран-доступ">
+        <h1>Доступ</h1>
+        <p class="назначение">Сейчас: полный доступ у всех. Разделение прав — следующими этапами.</p>
+        <div class="блок">
+          <div class="подпись">Кого пустили</div>
+          <div class="строка"><span>И. Габитов — руководитель процесса</span><span class="метка">полный доступ</span></div>
+          <div class="строка"><span>Ю. Ковалёва — квалификатор</span><span class="метка">полный доступ</span></div>
+          <div class="строка"><span>Р. Губаев — администратор</span><span class="метка">полный доступ</span></div>
+        </div>
+        <div class="блок">
+          <div class="подпись">Живое ограничение</div>
+          <div class="строка"><span>Промпты правит только Ирик — договорённость</span></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var вход = document.getElementById('вход');
+  var приложение = document.getElementById('приложение');
+  var панель = document.getElementById('разделы');
+
+  function показатьЭкран(имя, безИстории){
+    document.querySelectorAll('.экран').forEach(function(э){ э.classList.remove('виден'); });
+    var цель = document.getElementById('экран-' + имя);
+    if (цель) { цель.classList.add('виден'); }
+    if (имя === 'письма') { показатьСписокПисем(true); }
+    document.querySelectorAll('.пункт').forEach(function(п){
+      п.classList.toggle('активен', п.getAttribute('data-экран') === имя);
+    });
+    document.querySelector('.полотно').scrollTop = 0;
+    if (window.innerWidth <= 760) {
+      панель.classList.remove('открыт');
+      document.getElementById('скрим').classList.remove('открыт');
+      document.getElementById('кнопка-меню').classList.remove('активна');
+    }
+    if (!безИстории && decodeURIComponent(location.hash.replace(/^#/, '')) !== имя) {
+      history.pushState(null, '', '#' + имя);
+    }
+  }
+
+  function показатьВкладку(имя, безИстории){
+    document.querySelectorAll('.вкладка').forEach(function(х){ х.classList.remove('активна'); });
+    document.querySelectorAll('.вкладка-содержимое').forEach(function(х){ х.classList.remove('виден'); });
+    var цельВкладки = document.querySelector('.вкладка[data-вкладка="' + имя + '"]');
+    var цельСодержимого = document.getElementById('вкладка-' + имя);
+    if (цельВкладки) { цельВкладки.classList.add('активна'); }
+    if (цельСодержимого) { цельСодержимого.classList.add('виден'); }
+    if (!безИстории) { history.pushState(null, '', '#правила/' + имя); }
+  }
+
+  function применитьМаршрут(хвост){
+    var путь = decodeURIComponent((хвост || '#пульс').replace(/^#/, '')).split('/');
+    показатьЭкран(путь[0], true);
+    if (путь[0] === 'правила' && путь[1]) { показатьВкладку(путь[1], true); }
+    if (путь[0] === 'письма') {
+      if (путь[1]) { показатьПисьмо(parseInt(путь[1], 10) - 1, true); }
+      else { показатьСписокПисем(true); }
+    }
+  }
+
+  document.getElementById('войти').addEventListener('click', function(){
+    вход.style.display = 'none';
+    приложение.style.display = 'flex';
+    показатьЭкран('пульс');
+  });
+
+  document.querySelectorAll('.пункт').forEach(function(п){
+    п.addEventListener('click', function(){ показатьЭкран(п.getAttribute('data-экран')); });
+  });
+
+  document.querySelectorAll('[data-кнопка]').forEach(function(к){
+    к.addEventListener('click', function(){ показатьЭкран(к.getAttribute('data-кнопка')); });
+  });
+
+  document.getElementById('логотип').addEventListener('click', function(){ показатьЭкран('пульс'); });
+  document.getElementById('кнопка-меню').addEventListener('click', function(){
+    var открыто = панель.classList.toggle('открыт');
+    document.getElementById('скрим').classList.toggle('открыт', открыто);
+    this.classList.toggle('активна', открыто);
+  });
+  document.getElementById('скрим').addEventListener('click', function(){
+    панель.classList.remove('открыт');
+    this.classList.remove('открыт');
+    document.getElementById('кнопка-меню').classList.remove('активна');
+  });
+
+  window.addEventListener('popstate', function(){
+    if (приложение.style.display === 'flex') { применитьМаршрут(location.hash); }
+  });
+
+  // Письма: список и подробная карточка
+  var письма = [
+    {
+      тема: 'Заявка: инвентаризация выбросов, г. Томск',
+      от: 'СтройКад, Смирнов А. В.',
+      когда: 'сегодня, 14:58',
+      тип: 'новая заявка',
+      статус: 'нужен человек', статусТип: 'горит',
+      определено: ['Компания: ООО «СтройКад»', 'Город: Томск', 'Что хотят: инвентаризация выбросов'],
+      остановка: { причина: 'Не указан ИНН', зачем: 'Без него не отличить одно юрлицо от другого' },
+      связи: [
+        { чем: 'Сделка', имя: 'Инвентаризация — ООО СтройКад, Томск', состояние: 'создана' },
+        { чем: 'Контакт', имя: 'Смирнов А. В.', состояние: 'создан' },
+        { чем: 'Компания', имя: 'ООО «СтройКад»', состояние: 'существующая' },
+        { чем: 'Папка материалов', имя: 'Папка сделки создана', состояние: 'требует доступа' }
+      ],
+      задачи: ['Задача сотруднику: уточнить ИНН — поставлена, сегодня 15:00'],
+      журнал: [
+        { решение: 'Класс «новая заявка»', вердикт: 'верно', когда: '14:58' },
+        { решение: 'Приоритет «высокий»', вердикт: 'верно', когда: '14:58' },
+        { решение: 'Компания найдена по домену', вердикт: 'верно', когда: '14:59' }
+      ],
+      история: ['Сделку создала система — сегодня, 14:59', 'Поставлена задача — сегодня, 15:00'],
+      шаги: ['Класс: новая заявка', 'Приоритет: высокий', 'Связь: новая сделка', 'Данные: компания, город, услуга', 'Объём: не определён', 'Запись: сделка, контакт', 'Материалы: папка создана, доступ нужен', 'Задача: поставлена']
+    },
+    {
+      тема: 'Re: протоколы за август',
+      от: 'ЭКОЛАЙФ, Чепаков И. С.',
+      когда: 'сегодня, 13:20',
+      тип: 'переписка по сделке',
+      статус: 'разобрано', статусТип: '',
+      определено: ['Сделка найдена: «Протоколы, август»', 'Контакт: Чепаков И. С.'],
+      остановка: null,
+      связи: [
+        { чем: 'Сделка', имя: 'Протоколы, август — ООО ЭКОЛАЙФ', состояние: 'существующая' },
+        { чем: 'Письмо прикреплено к сделке', имя: 'Протоколы за август', состояние: 'ок' }
+      ],
+      задачи: ['Задача не нужна — это переписка по существующему делу'],
+      журнал: [
+        { решение: 'Класс «переписка по сделке»', вердикт: 'верно', когда: '13:20' },
+        { решение: 'Связь со сделкой найдена', вердикт: 'верно', когда: '13:20' }
+      ],
+      история: ['Письмо прикреплено к сделке — сегодня, 13:21'],
+      шаги: ['Класс: переписка по сделке', 'Приоритет: прежний', 'Связь: существующая сделка', 'Данные: обновлено по запросу', 'Запись: письмо прикреплено', 'Задача: не нужна']
+    },
+    {
+      тема: 'Заявка с сайта: отходы, Ставрополье',
+      от: 'форма сайта (подменная почта info0187)',
+      когда: 'сегодня, 11:05',
+      тип: 'новая заявка',
+      статус: 'разобрано', статусТип: '',
+      определено: ['Компания: ООО «ЭКОЛАЙФ»', 'Город: Ставрополье', 'Что хотят: отходы', 'Объём: 220'],
+      остановка: null,
+      связи: [
+        { чем: 'Сделка', имя: 'Отходы — ООО ЭКОЛАЙФ, Ставрополье', состояние: 'создана' },
+        { чем: 'Контакт', имя: 'Чепаков И. С.', состояние: 'существующий' },
+        { чем: 'Компания', имя: 'ООО «ЭКОЛАЙФ»', состояние: 'существующая' },
+        { чем: 'Папка материалов', имя: 'Папка сделки + вложение', состояние: 'ок' }
+      ],
+      задачи: ['Задача сотруднику: обработать заявку — поставлена, сегодня 11:07'],
+      журнал: [
+        { решение: 'Класс «новая заявка»', вердикт: 'верно', когда: '11:05' },
+        { решение: 'Приоритет «высокий» (отходы)', вердикт: 'верно', когда: '11:05' },
+        { решение: 'Объём 220 по вложению', вердикт: 'верно', когда: '11:06' }
+      ],
+      история: ['Сделку создала система — сегодня, 11:06', 'Загружено вложение — сегодня, 11:06'],
+      шаги: ['Класс: новая заявка', 'Приоритет: высокий', 'Связь: новая сделка', 'Данные: компания, контакт, город', 'Объём: 220', 'Запись: сделка, контакт, компания', 'Материалы: папка + вложение', 'Задача: поставлена']
+    },
+    {
+      тема: 'Рассылка: новости отрасли',
+      от: 'Отраслевой портал',
+      когда: 'вчера, 09:12',
+      тип: 'нецелевое',
+      статус: 'отсев подтверждён', статусТип: '',
+      определено: ['Это не заявка: рассылка'],
+      остановка: null,
+      связи: [],
+      задачи: ['Задача не нужна'],
+      журнал: [
+        { решение: 'Класс «нецелевое»', вердикт: 'верно', когда: 'вчера, 09:12' }
+      ],
+      история: ['Отсев подтвердил: Ю. Ковалёва — вчера, 09:40'],
+      шаги: ['Класс: нецелевое', 'Запись: ничего не создано']
+    }
+  ];
+
+  function строка(текст){ return '<div class="строка"><span>' + текст + '</span></div>'; }
+
+  function отрисоватьСписокПисем(){
+    var корень = document.getElementById('список-писем');
+    корень.innerHTML = письма.map(function(п, и){
+      return '<div class="строка"><span class="строка-письма" data-письмо="' + и + '" style="cursor:pointer;">' +
+        '<b>' + п.тема + '</b><br><span class="вторичный">' + п.когда + ' · ' + п.тип + '</span></span>' +
+        '<span class="метка ' + п.статусТип + '">' + п.статус + '</span></div>';
+    }).join('');
+    корень.querySelectorAll('[data-письмо]').forEach(function(э){
+      э.addEventListener('click', function(){ показатьПисьмо(parseInt(э.getAttribute('data-письмо'), 10)); });
+    });
+  }
+
+  function показатьПисьмо(номерПисьма, безИстории){
+    var п = письма[номерПисьма];
+    if (!п) { return; }
+    var связей = п.связи.map(function(с){
+      return '<div class="строка"><span>' + с.чем + ': ' + с.имя + '</span>' +
+        (с.состояние === 'требует доступа'
+          ? '<span><span class="метка опасно">требует доступа</span> <button class="кнопка светлая" data-действие="запросить-доступ">Запросить доступ</button></span>'
+          : '<span><span class="метка">' + с.состояние + '</span> <button class="кнопка светлая" data-действие="открыть-связку">Открыть</button></span>') + '</div>';
+    }).join('');
+    var html =
+      '<button class="кнопка светлая" id="ко-всем-письмам">← Ко всем письмам</button>' +
+      '<h1 style="margin-top:14px;">' + п.тема + '</h1>' +
+      '<p class="назначение">' + п.от + ' · ' + п.когда + ' · ' + п.тип + ' · <span class="метка ' + п.статусТип + '">' + п.статус + '</span></p>' +
+      '<div class="две-колонки">' +
+        '<div class="центр">' +
+          '<div class="блок"><div class="подпись">Что определено</div>' + п.определено.map(строка).join('') + '</div>' +
+          '<div class="блок"><div class="подпись">Что создано</div>' + (связей || строка('<span class="вторичный">Ничего не создано — письмо нецелевое</span>')) + '</div>' +
+          (п.остановка
+            ? '<div class="блок"><div class="подпись">Где остановилась и причина</div>' +
+                строка('<b>' + п.остановка.причина + '</b> — «' + п.остановка.зачем + '»') +
+                '<div class="ввод-строка"><input id="ввод-в-карточке" placeholder="Чего не хватает">' +
+                '<button class="кнопка" id="закрыть-в-карточке">Закрыть случай</button></div>' +
+                '<div class="подсказка">Закроете — случай уйдёт из очереди, карточка обновится.</div></div>'
+            : '<div class="блок"><div class="подпись">Где остановилась</div>' + строка('<span class="вторичный">Дошла до конца, остановок нет</span>') + '</div>') +
+          '<div class="блок"><div class="подпись">Задачи</div>' + п.задачи.map(строка).join('') + '</div>' +
+        '</div>' +
+        '<div class="бок">' +
+          '<div class="блок"><div class="подпись">Журнал решений по письму</div>' +
+            п.журнал.map(function(ж){ return '<div class="строка"><span>' + ж.решение + ' — <span class="вторичный">' + ж.вердикт + ', ' + ж.когда + '</span></span>' +
+              '<span><button class="кнопка светлая" data-действие="верно">Верно</button> <button class="кнопка тихая" data-действие="не-верно">Не верно</button></span></div>'; }).join('') + '</div>' +
+          '<div class="блок"><div class="подпись">История по делу</div>' + п.история.map(строка).join('') + '</div>' +
+          '<div class="блок"><div class="подпись">Шаги разбора</div>' +
+            '<button class="кнопка светлая" id="раскрыть-шаги">Раскрыть шаги</button>' +
+            '<div id="шаги" style="display:none; margin-top:8px;">' + п.шаги.map(строка).join('') + '</div></div>' +
+        '</div>' +
+      '</div>';
+    var карточка = document.getElementById('письма-карточка');
+    карточка.innerHTML = html;
+    document.getElementById('письма-список').style.display = 'none';
+    карточка.style.display = 'block';
+    document.getElementById('ко-всем-письмам').addEventListener('click', function(){ показатьСписокПисем(); });
+    var закрытьВКарточке = document.getElementById('закрыть-в-карточке');
+    if (закрытьВКарточке) {
+      закрытьВКарточке.addEventListener('click', function(){
+        this.closest('.блок').innerHTML = '<div class="подпись">Где остановилась и причина</div>' +
+          '<div class="строка"><span><b>Случай закрыт</b> — письмо ушло дальше</span><button class="кнопка светлая" id="отменить-в-карточке">Отменить (5 сек)</button></div>';
+        document.getElementById('отменить-в-карточке').addEventListener('click', function(){
+          показатьПисьмо(номерПисьма, true);
+        });
+      });
+    }
+    карточка.querySelectorAll('[data-действие]').forEach(function(кнопка){
+      кнопка.addEventListener('click', function(){
+        var действие = кнопка.getAttribute('data-действие');
+        var ответы = {
+          'открыть-связку': 'В боевой версии откроется объект в CRM или на Диске',
+          'запросить-доступ': 'Запрос доступа поставлен — придёт уведомление',
+          'верно': 'Отмечено: решение верно — станет примером',
+          'не-верно': 'Отмечено: решение неверно — уйдёт в правки правил'
+        };
+        кнопка.closest('.строка').innerHTML = '<span class="вторичный">' + (ответы[действие] || 'Готово') + '</span>';
+      });
+    });
+    document.getElementById('раскрыть-шаги').addEventListener('click', function(){
+      var шаги = document.getElementById('шаги');
+      var видно = шаги.style.display !== 'none';
+      шаги.style.display = видно ? 'none' : 'block';
+      this.textContent = видно ? 'Раскрыть шаги' : 'Свернуть шаги';
+    });
+    document.querySelector('.полотно').scrollTop = 0;
+    if (!безИстории) { history.pushState(null, '', '#письма/' + (номерПисьма + 1)); }
+  }
+
+  function показатьСписокПисем(безИстории){
+    document.getElementById('письма-карточка').style.display = 'none';
+    document.getElementById('письма-список').style.display = 'block';
+    if (!безИстории) { history.pushState(null, '', '#письма'); }
+  }
+
+  отрисоватьСписокПисем();
+
+  // Очередь: случай → ввод → закрыть → следующий
+  var случаи = [
+    {
+      причина: 'Не указаны ИНН и адрес',
+      зачем: 'Без ИНН не отличить одно юрлицо от другого, без адреса не определить природопользователя',
+      кто: 'СтройКад · ждёт 2 дня',
+      срок: 'просрочено',
+      есть: 'компания, город',
+      надо: 'ИНН и адрес',
+      поля: [
+        { подсказка: 'ИНН', пример: '5404451583' },
+        { подсказка: 'Адрес природопользователя', пример: 'г. Томск, ул. Ленина, 25' }
+      ]
+    },
+    {
+      причина: 'Не определён контакт клиента',
+      зачем: 'Нужно, чтобы поставить задачу на сотрудника',
+      кто: 'ЭКОЛАЙФ · ждёт 3 часа',
+      срок: 'в срок',
+      есть: 'компания, ИНН, телефон',
+      надо: 'имя и должность',
+      поля: [
+        { подсказка: 'Имя и должность', пример: 'Чепаков И. С., начальник участка' }
+      ]
+    },
+    {
+      причина: 'Похоже, это не заявка',
+      зачем: 'Подтвердите отсев',
+      кто: 'рассылка · ждёт 3 часа',
+      срок: 'в срок',
+      есть: 'отправитель, тема',
+      надо: 'подтверждение отсева',
+      поля: [],
+      отсев: true
+    }
+  ];
+  var номер = 0;
+
+  var закрытоСегодня = 0;
+  var толькоПросроченные = false;
+  var тостТаймер = null;
+
+  function показатьТост(текст, отмена){
+    var тост = document.getElementById('тост-очереди');
+    тост.innerHTML = '<span>' + текст + '</span><button class="кнопка светлая" id="тост-отменить">Отменить (5 сек)</button>';
+    тост.style.display = 'flex';
+    if (тостТаймер) { clearTimeout(тостТаймер); }
+    document.getElementById('тост-отменить').addEventListener('click', function(){
+      тост.style.display = 'none';
+      if (тостТаймер) { clearTimeout(тостТаймер); }
+      if (отмена) { отмена(); }
+    });
+    тостТаймер = setTimeout(function(){ тост.style.display = 'none'; }, 5000);
+  }
+
+  function отрисоватьОчередь(){
+    var корень = document.getElementById('очередь-содержимое');
+    document.getElementById('закрыто-сегодня').textContent = 'Закрыто сегодня: ' + закрытоСегодня;
+    var пул = случаи.filter(function(с){
+      return !с.закрыт && (!толькоПросроченные || с.срок === 'просрочено');
+    });
+    if (!пул.length){
+      корень.innerHTML = '<div class="случай-пусто">Очередь пуста — это хороший знак.<br><button class="кнопка светлая" id="проверить-письма" style="margin-top:10px;">Проверить последние письма</button></div>';
+      document.getElementById('проверить-письма').addEventListener('click', function(){ показатьЭкран('письма'); });
+      return;
+    }
+    var с = пул[0];
+    корень.innerHTML =
+      '<div class="строка-случая">' +
+        '<div class="подпись">Осталось случаев: ' + пул.length + ' · просроченное и старое — сверху</div>' +
+        '<h3 style="margin:2px 0 4px; font-size:17px;">' + с.причина + '</h3>' +
+        '<div class="вторичный" style="font-size:13px;">' + с.зачем + ' · ' + с.кто + '</div>' +
+        '<div style="margin-top:8px;"><span class="метка ' + (с.срок === 'просрочено' ? 'горит' : '') + '">' + с.срок + '</span></div>' +
+        '<div class="строка"><span>Уже получено</span><span class="вторичный">' + с.есть + '</span></div>' +
+        '<div class="строка"><span>Не хватает</span><span class="вторичный">' + с.надо + '</span></div>' +
+        с.поля.map(function(ф, и){
+          return '<div style="margin-top:10px;">' +
+            '<div class="подсказка" style="margin-bottom:4px;">' + ф.подсказка + '</div>' +
+            '<input id="ввод-случая-' + и + '" style="width:100%; padding:8px 10px; border:1px solid var(--рамка); border-radius:8px; font-family:inherit; font-size:14px;" placeholder="' + ф.подсказка + '" value="' + ф.пример + '">' +
+          '</div>';
+        }).join('') +
+        '<div class="ввод-строка" style="margin-top:12px;">' +
+          '<button class="кнопка" id="закрыть-случай">' + (с.отсев ? 'Подтвердить отсев' : 'Закрыть случай') + '</button>' +
+        '</div>' +
+        '<div class="подсказка">' + (с.поля.length > 1 ? 'Заполните все поля и закройте случай. ' : '') + 'Закроете — сразу подставится следующий случай. Есть 5 секунд на отмену.</div>' +
+      '</div>';
+    document.getElementById('закрыть-случай').addEventListener('click', function(){
+      с.закрыт = true;
+      закрытоСегодня += 1;
+      отрисоватьОчередь();
+      показатьТост('Случай закрыт — письмо ушло дальше', function(){
+        с.закрыт = false;
+        закрытоСегодня -= 1;
+        отрисоватьОчередь();
+      });
+    });
+  }
+  отрисоватьОчередь();
+
+  document.getElementById('фильтр-просроченные').addEventListener('click', function(){
+    толькоПросроченные = true;
+    this.className = 'метка горит';
+    document.getElementById('фильтр-все').className = 'метка';
+    отрисоватьОчередь();
+  });
+  document.getElementById('фильтр-все').addEventListener('click', function(){
+    толькоПросроченные = false;
+    this.className = 'метка горит';
+    document.getElementById('фильтр-просроченные').className = 'метка';
+    отрисоватьОчередь();
+  });
+
+  // Вкладки правил
+  document.querySelectorAll('.вкладка').forEach(function(в){
+    в.addEventListener('click', function(){
+      показатьВкладку(в.getAttribute('data-вкладка'));
+    });
+  });
+
+  // Откат версии — необратимое, только с подтверждением
+  var откатитьВерсию = document.getElementById('откатить-версию');
+  if (откатитьВерсию) {
+    откатитьВерсию.addEventListener('click', function(){
+      document.getElementById('откат-подтверждение').style.display = 'block';
+    });
+    document.getElementById('откат-нет').addEventListener('click', function(){
+      document.getElementById('откат-подтверждение').style.display = 'none';
+    });
+    document.getElementById('откат-да').addEventListener('click', function(){
+      document.getElementById('откат-подтверждение').style.display = 'none';
+      var итог = document.getElementById('откат-итог');
+      итог.style.display = 'block';
+      итог.textContent = 'Сделано: работает версия 6, прежняя сохранена как версия 8.';
+    });
+  }
+
+  // Примеры из журнала — список открывается
+  var открытьПримеры = document.getElementById('открыть-примеры');
+  if (открытьПримеры) {
+    открытьПримеры.addEventListener('click', function(){
+      var список = document.getElementById('список-примеров');
+      var видно = список.style.display !== 'none';
+      список.style.display = видно ? 'none' : 'block';
+      список.innerHTML = видно ? '' :
+        '<div class="строка"><span>Отходы, 220 — подтвердил И. Габитов, 18.09</span></div>' +
+        '<div class="строка"><span>Переписка по сделке — подтвердила Ю. Ковалёва, 19.09</span></div>' +
+        '<div class="строка"><span class="вторичный">… и ещё 22 примера</span></div>';
+      this.textContent = видно ? 'Открыть список' : 'Свернуть список';
+    });
+  }
+
+  // Обновление устаревшего справочника
+  var обновитьСправочник = document.getElementById('обновить-справочник');
+  if (обновитьСправочник) {
+    обновитьСправочник.addEventListener('click', function(){
+      var стр = this.closest('.строка');
+      стр.innerHTML = '<span class="вторичный">Соответствия страниц сайта — обновление поставлено в очередь</span>';
+    });
+  }
+
+  // Прогон: действия у расхождения
+  var прогонОткрыть = document.getElementById('прогон-открыть-письмо');
+  if (прогонОткрыть) {
+    прогонОткрыть.addEventListener('click', function(){
+      показатьЭкран('письма');
+      показатьПисьмо(2, true);
+    });
+  }
+  var прогонВПримеры = document.getElementById('прогон-в-примеры');
+  if (прогонВПримеры) {
+    прогонВПримеры.addEventListener('click', function(){
+      this.closest('.строка').innerHTML = '<span class="вторичный">Добавлено в примеры знаний — попадёт в контур самообучения</span>';
+    });
+  }
+
+  // Продление ключа — с любого места
+  ['продлить-баннер', 'продлить-канал', 'продлить-каналы-экран'].forEach(function(ид){
+    var кнопка = document.getElementById(ид);
+    if (кнопка) {
+      кнопка.addEventListener('click', function(){
+        this.outerHTML = '<span class="метка">поручение поставлено</span>';
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>
