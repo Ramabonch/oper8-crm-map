@@ -6,17 +6,30 @@
 <title>Пульт разбора писем</title>
 <style>
   :root{
-    --холст:#F0F3F7; --экран:#FFFFFF; --экран-2:#F7F9FC;
-    --сайдбар:#6C7A89; --графит:#2F3B4C; --рамка:#E5E9F0;
-    --текст:#2F3B4C; --вторичный:#7A8794;
+    --холст:#0E1219; --экран:rgba(255,255,255,.045); --экран-2:rgba(255,255,255,.08);
+    --сайдбар:#0A0E15; --графит:#7C9BFF; --рамка:rgba(255,255,255,.10);
+    --текст:#E7EBF3; --вторичный:#93A0B5;
+    --акцент:#7C9BFF; --внимание:#F0B070; --внимание-фон:rgba(240,176,112,.14);
+    --тревога:#F08A80; --тревога-фон:rgba(240,138,128,.14);
+    --тень:0 1px 2px rgba(0,0,0,.35); --тень-2:0 18px 48px rgba(0,0,0,.5);
+    --свечение:0 0 0 1px rgba(124,155,255,.35), 0 0 18px rgba(124,155,255,.18);
+    --радиус:14px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0; padding:0; height:100%;}
   body{
     background:var(--холст); color:var(--текст);
     font-family:'Inter','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
-    font-size:14px; line-height:1.5; overflow:hidden;
+    font-size:14px; line-height:1.55; overflow:hidden;
+    -webkit-font-smoothing:antialiased;
   }
+  body::before{
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:
+      radial-gradient(60% 50% at 15% 0%, rgba(124,155,255,.10), transparent 70%),
+      radial-gradient(50% 45% at 95% 20%, rgba(155,124,255,.08), transparent 70%);
+  }
+  #вход,#приложение{position:relative; z-index:1;}
 
   /* ——— Экран входа ——— */
   #вход{
@@ -24,80 +37,94 @@
     background:var(--холст); z-index:50;
   }
   .вход-карточка{
-    background:var(--экран); border:1px solid var(--рамка); border-radius:8px;
-    width:min(380px, calc(100% - 32px)); padding:28px;
+    background:rgba(22,28,40,.7); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+    border:1px solid var(--рамка); border-radius:18px;
+    box-shadow:var(--тень-2);
+    width:min(380px, calc(100% - 32px)); padding:32px;
   }
-  .вход-карточка h2{margin:0 0 4px; font-size:18px; font-weight:600;}
-  .вход-карточка .под{color:var(--вторичный); font-size:12.5px; margin-bottom:18px;}
+  .вход-карточка h2{margin:0 0 4px; font-size:20px; font-weight:700; letter-spacing:-.01em;}
+  .вход-карточка .под{color:var(--вторичный); font-size:13px; margin-bottom:20px;}
   .поле-ввода{
-    width:100%; border:1px solid var(--рамка); border-radius:5px; padding:9px 10px;
-    font-size:14px; margin-bottom:10px; background:var(--экран-2); color:var(--текст);
+    width:100%; border:1px solid var(--рамка); border-radius:10px; padding:11px 12px;
+    font-size:14px; margin-bottom:12px; background:rgba(255,255,255,.06); color:var(--текст);
+    transition:border-color .15s ease, box-shadow .15s ease;
   }
-  .поле-ввода:focus{outline:2px solid var(--графит); outline-offset:1px;}
+  .поле-ввода:focus{outline:none; border-color:var(--акцент); box-shadow:0 0 0 3px rgba(124,155,255,.2);}
 
   /* ——— Общий каркас ——— */
   #приложение{display:none; height:100%; flex-direction:column;}
   .шапка{
-    display:flex; align-items:center; gap:12px; padding:10px 18px;
-    background:var(--экран); border-bottom:1px solid var(--рамка); flex:0 0 auto;
+    display:flex; align-items:center; gap:14px; padding:12px 20px;
+    background:rgba(14,18,25,.6); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--рамка); flex:0 0 auto;
   }
-  .логотип{font-size:15px; font-weight:600; letter-spacing:.04em; cursor:pointer; user-select:none;}
+  .логотип{font-size:15px; font-weight:700; letter-spacing:.12em; cursor:pointer; user-select:none; color:#fff;}
   .поиск{
-    flex:1; max-width:520px; background:var(--экран-2); border:1px solid var(--рамка);
-    border-radius:5px; padding:7px 10px; font-size:13px; color:var(--вторичный);
+    flex:1; max-width:520px; background:rgba(255,255,255,.06); border:1px solid transparent;
+    border-radius:999px; padding:8px 16px; font-size:13px; color:var(--вторичный);
+    transition:border-color .15s ease, background .15s ease;
   }
-  .точка-состояния{width:9px; height:9px; border-radius:50%; background:#5B9279; flex:0 0 auto;}
+  .поиск:hover{background:rgba(255,255,255,.1);}
+  .точка-состояния{width:9px; height:9px; border-radius:50%; background:#4CAF7D; box-shadow:0 0 8px rgba(76,175,125,.6); flex:0 0 auto;}
   .аватар{
-    width:30px; height:30px; border-radius:50%; background:var(--графит); color:#fff;
-    display:flex; align-items:center; justify-content:center; font-size:12px; flex:0 0 auto;
+    width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.1); color:#fff;
+    border:1px solid var(--рамка);
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; flex:0 0 auto;
     cursor:pointer;
   }
-  .кнопка-меню{display:none; background:none; border:1px solid var(--рамка); border-radius:5px; padding:6px 10px; font-size:13px; cursor:pointer; color:var(--текст);}
-  .кнопка-меню:hover{background:var(--экран-2);}
-  .кнопка-меню.активна{background:var(--графит); color:#fff; border-color:var(--графит);}
+  .кнопка-меню{display:none; background:none; border:1px solid var(--рамка); border-radius:10px; padding:7px 12px; font-size:13px; cursor:pointer; color:var(--текст); transition:background .15s ease;}
+  .кнопка-меню:hover{background:rgba(255,255,255,.08);}
+  .кнопка-меню.активна{background:var(--акцент); color:#0E1219; border-color:var(--акцент);}
   .кнопка-меню:active{transform:translateY(1px);}
-  .скрим{display:none; position:absolute; inset:0; background:rgba(47,59,76,.35); z-index:35;}
+  .скрим{display:none; position:absolute; inset:0; background:rgba(5,8,13,.55); z-index:35;}
   .скрим.открыт{display:block;}
 
   .корпус{display:flex; flex:1 1 auto; min-height:0;}
   .разделы{
-    width:232px; flex:0 0 auto; background:var(--сайдбар); color:#EAEFF4;
-    padding:14px 10px; overflow-y:auto;
+    width:236px; flex:0 0 auto; background:rgba(10,14,21,.65); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border-right:1px solid var(--рамка); color:#C4CCDA;
+    padding:16px 12px; overflow-y:auto;
   }
   .разделы .группа{
-    margin:14px 8px 4px; font-size:10.5px; letter-spacing:.09em;
-    text-transform:uppercase; color:#C7D2DC;
+    margin:18px 12px 6px; font-size:11px; letter-spacing:.08em;
+    text-transform:uppercase; color:#5D6878;
   }
-  .разделы .группа:first-child{margin-top:2px;}
+  .разделы .группа:first-child{margin-top:4px;}
   .пункт{
     display:block; width:100%; text-align:left; background:none; border:none;
-    color:#EAEFF4; font:inherit; font-size:13.5px; padding:8px 10px; border-radius:5px;
-    cursor:pointer; margin:1px 0;
+    color:#C4CCDA; font:inherit; font-size:13.5px; font-weight:500; padding:9px 12px; border-radius:10px;
+    cursor:pointer; margin:2px 0; transition:background .15s ease, color .15s ease;
   }
-  .пункт:hover{background:rgba(255,255,255,.12);}
-  .пункт:active{background:var(--графит); transform:translateY(1px);}
-  .пункт.активен{background:var(--графит); color:#fff;}
+  .пункт:hover{background:rgba(255,255,255,.06); color:#fff;}
+  .пункт:active{background:rgba(124,155,255,.18); transform:translateY(1px);}
+  .пункт.активен{background:rgba(124,155,255,.14); color:#fff; box-shadow:inset 0 0 0 1px rgba(124,155,255,.25);}
 
-  .полотно{flex:1 1 auto; min-width:0; overflow-y:auto; padding:22px 26px 40px;}
+  .полотно{flex:1 1 auto; min-width:0; overflow-y:auto; padding:26px 30px 44px;}
   .экран{display:none; max-width:1240px;}
   .экран.виден{display:block;}
-  .экран h1{font-size:21px; font-weight:600; margin:0 0 2px;}
-  .экран .назначение{color:var(--вторичный); font-size:13px; margin:0 0 18px;}
+  .экран h1{font-size:24px; font-weight:700; letter-spacing:-.015em; margin:0 0 4px;}
+  .экран .назначение{color:var(--вторичный); font-size:13.5px; margin:0 0 20px;}
 
   .кнопка{
-    display:inline-block; background:var(--графит); color:#fff; border:none;
-    border-radius:5px; padding:8px 14px; font:inherit; font-size:12.5px;
+    display:inline-block; background:var(--акцент); color:#0E1219; border:none;
+    border-radius:9px; padding:8px 14px; font:inherit; font-size:12.5px; font-weight:600;
     letter-spacing:.04em; text-transform:uppercase; cursor:pointer;
+    transition:filter .15s ease, box-shadow .15s ease;
   }
-  .кнопка:hover{background:#3E4C60;}
-  .кнопка:active{background:#24303E; transform:translateY(1px);}
-  .кнопка.светлая{background:#fff; color:var(--графит); border:1px solid var(--рамка);}
-  .кнопка.светлая:hover{background:var(--экран-2);}
-  .кнопка.светлая:active{background:var(--рамка); transform:translateY(1px);}
-  .кнопка:disabled{opacity:.45; cursor:default; transform:none;}
+  .кнопка:hover{filter:brightness(1.12); box-shadow:0 0 14px rgba(124,155,255,.3);}
+  .кнопка:active{filter:brightness(.92); transform:translateY(1px);}
+  .кнопка.светлая{background:rgba(255,255,255,.07); color:var(--текст); border:1px solid var(--рамка);}
+  .кнопка.светлая:hover{background:rgba(255,255,255,.12); filter:none; box-shadow:none;}
+  .кнопка.светлая:active{background:rgba(255,255,255,.16); transform:translateY(1px);}
+  .кнопка.тихая{background:none; color:var(--вторичный); border:1px solid var(--рамка); border-radius:9px; padding:8px 14px; font:inherit; font-size:12.5px; cursor:pointer;}
+  .кнопка.тихая:hover{color:var(--текст); background:rgba(255,255,255,.05);}
+  .кнопка.тихая:active{transform:translateY(1px);}
+  .кнопка:disabled{opacity:.45; cursor:default; transform:none; filter:none; box-shadow:none;}
 
   .блок{
-    background:var(--экран); border:1px solid var(--рамка); border-radius:6px;
+    background:var(--экран); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border:1px solid var(--рамка); border-radius:var(--радиус);
+    box-shadow:var(--тень);
     padding:14px 16px; margin-bottom:12px;
   }
   .блок > .подпись{
@@ -112,18 +139,18 @@
   .вторичный{color:var(--вторичный);}
   .метка{
     display:inline-block; background:var(--экран-2); border:1px solid var(--рамка);
-    border-radius:4px; padding:1px 8px; font-size:11px; white-space:nowrap;
+    border-radius:999px; padding:1px 10px; font-size:11px; white-space:nowrap;
   }
-  .метка.горит{background:#FDF3E7; border-color:#E8D5B5;}
-  .метка.опасно{background:#FBEDEC; border-color:#E4C7C4;}
+  .метка.горит{background:var(--внимание-фон); border-color:rgba(240,176,112,.4); color:var(--внимание);}
+  .метка.опасно{background:var(--тревога-фон); border-color:rgba(240,138,128,.4); color:var(--тревога);}
   button.метка{cursor:pointer; font-family:inherit;}
   .панель-фильтров{display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;}
-  .тост{background:var(--фон); border:1px solid var(--рамка); border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px;}
+  .тост{background:rgba(30,38,54,.85); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border:1px solid var(--рамка); border-radius:12px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px;}
 
   .сетка-3{display:grid; grid-template-columns:repeat(3, calc((100% - 24px)/3)); gap:12px; margin-bottom:12px;}
   .счётчик{font-size:26px; font-weight:600;}
   .счётчик-кнопка{cursor:pointer;}
-  .счётчик-кнопка:hover .блок{border-color:var(--графит);}
+  .счётчик-кнопка:hover .блок{border-color:rgba(124,155,255,.45); box-shadow:var(--свечение);}
 
   .две-колонки{display:flex; gap:12px; align-items:stretch;}
   .две-колонки > *{min-width:0;}
@@ -137,20 +164,23 @@
   }
   .вкладка:hover{color:var(--текст);}
   .вкладка:active{transform:translateY(1px);}
-  .вкладка.активна{color:var(--графит); border-bottom-color:var(--графит); font-weight:600;}
+  .вкладка.активна{color:#fff; border-bottom-color:var(--акцент); font-weight:600;}
   .вкладка-содержимое{display:none;}
   .вкладка-содержимое.виден{display:block;}
 
   .случай-пусто{padding:26px; text-align:center; color:var(--вторичный); font-size:15px;}
   .строка-случая{
-    background:var(--экран); border:1px solid var(--рамка); border-radius:6px;
+    background:var(--экран); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border:1px solid var(--рамка); border-radius:var(--радиус);
+    box-shadow:var(--тень);
     padding:14px 16px; margin-bottom:12px;
   }
   .ввод-строка{display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap:wrap;}
   .ввод-строка input{
-    flex:1; min-width:180px; border:1px solid var(--рамка); border-radius:5px;
-    padding:8px 10px; font:inherit; font-size:14px; background:var(--экран-2);
+    flex:1; min-width:180px; border:1px solid var(--рамка); border-radius:9px;
+    padding:8px 10px; font:inherit; font-size:14px; background:rgba(255,255,255,.06); color:var(--текст);
   }
+  .ввод-строка input:focus{outline:none; border-color:var(--акцент); box-shadow:0 0 0 3px rgba(124,155,255,.2);}
   .подсказка{font-size:12px; color:var(--вторичный); margin-top:8px;}
 
   /* ——— Телефон: разделы выезжают ——— */
@@ -160,7 +190,7 @@
     .разделы{
       position:absolute; top:0; bottom:0; left:0; z-index:40;
       transform:translateX(-105%); transition:transform .18s ease;
-      box-shadow:2px 0 14px rgba(47,59,76,.18);
+      box-shadow:2px 0 24px rgba(0,0,0,.5);
     }
     .разделы.открыт{transform:translateX(0);}
     .сетка-3{grid-template-columns:100%;}
@@ -290,7 +320,7 @@
             <div class="подпись">Версии</div>
             <div class="строка"><span><b>Версия 7 — работает сейчас</b><br><span class="вторичный">правила классов писем · И. Габитов · 22.09</span></span><button class="кнопка светлая">Сравнить</button></div>
             <div class="строка"><span>Версия 6<br><span class="вторичный">правила приоритета · И. Габитов · 18.09</span></span><button class="кнопка светлая" id="откатить-версию">Откатить</button></div>
-            <div id="откат-подтверждение" style="display:none; margin-top:10px; padding:10px 12px; background:var(--фон); border:1px solid var(--рамка); border-radius:8px;">
+            <div id="откат-подтверждение" style="display:none; margin-top:10px; padding:10px 12px; background:rgba(255,255,255,.06); border:1px solid var(--рамка); border-radius:10px;">
               <div><b>Откатить на версию 6?</b> Текущая сохранится как версия 8 — ничего не потеряется.</div>
               <div style="margin-top:8px;"><button class="кнопка" id="откат-да">Откатить</button> <button class="кнопка светлая" id="откат-нет">Оставить как есть</button></div>
             </div>
@@ -756,7 +786,7 @@
         с.поля.map(function(ф, и){
           return '<div style="margin-top:10px;">' +
             '<div class="подсказка" style="margin-bottom:4px;">' + ф.подсказка + '</div>' +
-            '<input id="ввод-случая-' + и + '" style="width:100%; padding:8px 10px; border:1px solid var(--рамка); border-radius:8px; font-family:inherit; font-size:14px;" placeholder="' + ф.подсказка + '" value="' + ф.пример + '">' +
+            '<input id="ввод-случая-' + и + '" style="width:100%; padding:8px 10px; border:1px solid var(--рамка); border-radius:9px; font-family:inherit; font-size:14px; background:rgba(255,255,255,.06); color:var(--текст);" placeholder="' + ф.подсказка + '" value="' + ф.пример + '">' +
           '</div>';
         }).join('') +
         '<div class="ввод-строка" style="margin-top:12px;">' +
