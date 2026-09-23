@@ -81,20 +81,22 @@
 
   .корпус{display:flex; flex:1 1 auto; min-height:0;}
   .разделы{
-    width:236px; flex:0 0 auto; background:rgba(10,14,21,.65); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    width:92px; flex:0 0 auto; background:rgba(10,14,21,.65); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
     border-right:1px solid var(--рамка); color:#C4CCDA;
-    padding:16px 12px; overflow-y:auto;
+    padding:12px 8px; overflow-y:auto;
   }
   .разделы .группа{
-    margin:18px 12px 6px; font-size:11px; letter-spacing:.08em;
-    text-transform:uppercase; color:#5D6878;
+    margin:10px 6px; height:1px; background:var(--рамка);
+    font-size:0; color:transparent;
   }
-  .разделы .группа:first-child{margin-top:4px;}
+  .разделы .группа:first-child{display:none;}
   .пункт{
-    display:block; width:100%; text-align:left; background:none; border:none;
-    color:#C4CCDA; font:inherit; font-size:13.5px; font-weight:500; padding:9px 12px; border-radius:10px;
-    cursor:pointer; margin:2px 0; transition:background .15s ease, color .15s ease;
+    display:flex; flex-direction:column; align-items:center; gap:3px; width:100%;
+    background:none; border:none;
+    color:#C4CCDA; font:inherit; font-size:10.5px; font-weight:500; padding:9px 4px; border-radius:10px;
+    cursor:pointer; margin:2px 0; transition:background .15s ease, color .15s ease; text-align:center;
   }
+  .пункт .иконка{font-size:17px; line-height:1;}
   .пункт:hover{background:rgba(255,255,255,.06); color:#fff;}
   .пункт:active{background:rgba(124,155,255,.18); transform:translateY(1px);}
   .пункт.активен{background:rgba(124,155,255,.14); color:#fff; box-shadow:inset 0 0 0 1px rgba(124,155,255,.25);}
@@ -189,10 +191,13 @@
     .корпус{position:relative;}
     .разделы{
       position:absolute; top:0; bottom:0; left:0; z-index:40;
+      width:220px; padding:16px 12px;
       transform:translateX(-105%); transition:transform .18s ease;
       box-shadow:2px 0 24px rgba(0,0,0,.5);
     }
     .разделы.открыт{transform:translateX(0);}
+    .разделы .пункт{flex-direction:row; justify-content:flex-start; gap:10px; font-size:13.5px; text-align:left; padding:9px 12px;}
+    .разделы .пункт .иконка{font-size:15px;}
     .сетка-3{grid-template-columns:100%;}
     .две-колонки{flex-direction:column;}
     .бок{width:100%;}
@@ -226,15 +231,15 @@
     <div class="скрим" id="скрим"></div>
     <nav class="разделы" id="разделы">
       <div class="группа">Рабочее</div>
-      <button class="пункт" data-экран="пульс">Пульс системы</button>
-      <button class="пункт" data-экран="очередь">Что нужно от человека</button>
-      <button class="пункт" data-экран="письма">Письма и разбор</button>
+      <button class="пункт" data-экран="пульс"><span class="иконка">◉</span>Пульс</button>
+      <button class="пункт" data-экран="очередь"><span class="иконка">▤</span>Очередь</button>
+      <button class="пункт" data-экран="письма"><span class="иконка">▦</span>Письма</button>
       <div class="группа">Ещё</div>
-      <button class="пункт" data-экран="правила">Правила и версии</button>
-      <button class="пункт" data-экран="журнал">Журнал решений</button>
-      <button class="пункт" data-экран="прогон">Прогон без записи</button>
-      <button class="пункт" data-экран="каналы">Каналы и расход</button>
-      <button class="пункт" data-экран="доступ">Доступ</button>
+      <button class="пункт" data-экран="правила"><span class="иконка">§</span>Правила</button>
+      <button class="пункт" data-экран="журнал"><span class="иконка">≡</span>Журнал</button>
+      <button class="пункт" data-экран="прогон"><span class="иконка">▷</span>Прогон</button>
+      <button class="пункт" data-экран="каналы"><span class="иконка">⇄</span>Каналы</button>
+      <button class="пункт" data-экран="доступ"><span class="иконка">⚿</span>Доступ</button>
     </nav>
 
     <main class="полотно">
@@ -252,16 +257,16 @@
         <div class="две-колонки">
           <div class="центр">
             <div class="блок">
-              <div class="подпись">Качество и скорость</div>
-              <div class="строка счётчик-кнопка" data-кнопка="письма"><span>Без вмешательства человека</span><span>83%</span></div>
-              <div class="строка счётчик-кнопка" data-кнопка="письма"><span>Среднее время до готовой карточки</span><span>4 мин</span></div>
-              <div class="строка счётчик-кнопка" data-кнопка="очередь"><span>Ждут человека дольше срока</span><span>5</span></div>
-              <div class="строка счётчик-кнопка" data-кнопка="прогон"><span>Качество по приёмке (точно / в допуске)</span><span>92% / 4%</span></div>
+              <div class="подпись">Что нужно от человека</div>
+              <div class="строка счётчик-кнопка" data-кнопка="очередь"><span><span class="метка горит">просрочено</span> Не указаны ИНН и адрес</span><span class="вторичный">СтройКад · 2 дня</span></div>
+              <div class="строка счётчик-кнопка" data-кнопка="очередь"><span><span class="метка">в срок</span> Не определён контакт клиента</span><span class="вторичный">ЭКОЛАЙФ · 3 ч</span></div>
+              <div class="строка счётчик-кнопка" data-кнопка="очередь"><span><span class="метка">в срок</span> Похоже, это не заявка</span><span class="вторичный">рассылка · 3 ч</span></div>
             </div>
             <div class="блок">
               <div class="подпись">Последние события</div>
               <div class="строка"><span>Разобрано письмо: «Заявка с сайта: отходы»</span><span class="вторичный">11:05</span></div>
               <div class="строка"><span>Остановилась: не хватает ИНН</span><span class="вторичный">10:52</span></div>
+              <div class="строка"><span>Создана сделка: «Инвентаризация выбросов, г. Томск»</span><span class="вторичный">10:31</span></div>
             </div>
           </div>
           <div class="бок">
@@ -271,6 +276,13 @@
               <div class="строка"><span>Модель</span><span>в порядке</span></div>
               <div class="строка"><span>amoCRM</span><button class="кнопка светлая" id="продлить-канал">Продлить · до 30.09</button></div>
               <div class="строка"><span>Диск</span><span>в порядке</span></div>
+            </div>
+            <div class="блок">
+              <div class="подпись">Качество и скорость</div>
+              <div class="строка счётчик-кнопка" data-кнопка="письма"><span>Без вмешательства человека</span><span>83%</span></div>
+              <div class="строка счётчик-кнопка" data-кнопка="письма"><span>Время до готовой карточки</span><span>4 мин</span></div>
+              <div class="строка счётчик-кнопка" data-кнопка="очередь"><span>Ждут дольше срока</span><span>5</span></div>
+              <div class="строка счётчик-кнопка" data-кнопка="прогон"><span>Качество по приёмке</span><span>92% / 4%</span></div>
             </div>
             <div class="блок">
               <div class="подпись">Расход</div>
